@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/failsafe-go/failsafe-go"
-	faultinject "github.com/faustbrian/golib/pkg/fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection"
 	"github.com/slok/goresilience/chaos"
 )
 

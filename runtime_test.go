@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/golib/pkg/fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection"
 )
 
 func TestRuntimeRequiresExplicitAuthorizationAndBounds(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	breaker "github.com/faustbrian/golib/pkg/circuit-breaker"
-	faultinject "github.com/faustbrian/golib/pkg/fault-injection"
-	"github.com/faustbrian/golib/pkg/retry"
+	breaker "github.com/faustbrian/go-circuit-breaker"
+	faultinject "github.com/faustbrian/go-fault-injection"
+	"github.com/faustbrian/go-retry"
 )
 
 var errCampaign = errors.New("injected campaign failure")

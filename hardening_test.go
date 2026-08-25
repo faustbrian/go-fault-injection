@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/golib/pkg/fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection"
 )
 
 func TestConcurrentSelectionResetAndSnapshotRemainBounded(t *testing.T) {

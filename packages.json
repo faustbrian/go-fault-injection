@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-fault-injection",
+  "packages": [
+    {
+      "module_directory": ".",
+      "directory": ".",
+      "name": "faultinject",
+      "import_path": "github.com/faustbrian/go-fault-injection",
+      "kind": "public",
+      "production": true,
+      "executable": true,
+      "coverage_required": true,
+      "build_required": true,
+      "build_tags": []
+    }
+  ]
+}

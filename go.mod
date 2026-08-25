@@ -1,4 +1,4 @@
-module github.com/faustbrian/golib/pkg/fault-injection
+module github.com/faustbrian/go-fault-injection
 
 go 1.26.6
 

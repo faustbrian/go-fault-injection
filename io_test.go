@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	faultinject "github.com/faustbrian/golib/pkg/fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection"
 )
 
 func TestReaderAppliesBoundedByteFaults(t *testing.T) {

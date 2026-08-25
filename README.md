@@ -1,5 +1,15 @@
 # fault-injection
 
+[![CI](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml)
+[![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-fault-injection.svg)](https://pkg.go.dev/github.com/faustbrian/go-fault-injection)
+[![Release](https://img.shields.io/github/v/release/faustbrian/go-fault-injection?sort=semver)](https://github.com/faustbrian/go-fault-injection/releases)
+[![Go](https://img.shields.io/badge/go-1.26.6-00ADD8?logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 `fault-injection` is a deterministic, concurrency-safe, bounded toolkit for
 exercising failure paths in Go tests and explicitly wired controlled
 experiments. Its zero value is disabled, configuration is copied and validated
@@ -110,7 +120,7 @@ From the repository root:
 
 ```sh
 make inventory
-make check MODULES=pkg/fault-injection
+make check MODULES=.
 make ci-changed BASE=<revision>
 ```
 

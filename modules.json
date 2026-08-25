@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-fault-injection",
+  "go_version": "1.26.6",
+  "modules": [
+    {
+      "directory": ".",
+      "module_path": "github.com/faustbrian/go-fault-injection",
+      "go_version": "1.26.6",
+      "packages": [
+        {
+          "module_directory": ".",
+          "directory": ".",
+          "name": "faultinject",
+          "import_path": "github.com/faustbrian/go-fault-injection",
+          "kind": "public",
+          "production": true,
+          "executable": true,
+          "coverage_required": true,
+          "build_required": true,
+          "build_tags": []
+        }
+      ],
+      "purpose": "`fault-injection` is a deterministic, concurrency-safe, bounded toolkit for exercising failure paths in Go tests and explicitly wired controlled experiments. Its zero value is disabled, configuration is copied and validated before use, and it has no environment-variable activation path, background worker, unbounded history, or remote control surface.",
+      "lifecycle": "stable",
+      "kind": "public library",
+      "releasable": true,
+      "family": "resilience",
+      "family_label": "Resilience",
+      "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
+      "family_order": 5,
+      "version": "v1.0.0",
+      "tag_prefix": "v",
+      "owned_dependencies": [],
+      "reverse_owned_dependencies": [
+        "github.com/faustbrian/go-fault-injection/benchmarks/comparison",
+        "github.com/faustbrian/go-fault-injection/integration/resilience"
+      ],
+      "external_runtime_dependencies": [
+        "go.uber.org/goleak"
+      ],
+      "required_services": [],
+      "build_tags": [],
+      "test_tags": [],
+      "interoperability_tools": [],
+      "specifications": [],
+      "conformance_corpora": [],
+      "provenance": [],
+      "goal_files": [
+        ".ai/GOAL.md",
+        ".ai/GOAL_HARDEN.md"
+      ],
+      "goal_status": "implementation-evidence-inventoried",
+      "goal_evidence": [
+        {
+          "file": ".ai/GOAL.md",
+          "requirements_sha256": "d37b053cca6b729d19fc7c921b87161f8ee84127f631c0b4a5792bc9f7861bba",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/api.md",
+            "docs/performance.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        },
+        {
+          "file": ".ai/GOAL_HARDEN.md",
+          "requirements_sha256": "447ec70507b9f635252025470434357321aef6deaa26c71826605917addc36a3",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/api.md",
+            "docs/performance.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        }
+      ],
+      "gates": {
+        "api_compatibility": true,
+        "benchmarks": true,
+        "conformance": false,
+        "coverage": true,
+        "documentation": true,
+        "fuzz": true,
+        "lint": true,
+        "mutation": true,
+        "race": true,
+        "security": true,
+        "tests": true
+      }
+    },
+    {
+      "directory": "benchmarks/comparison",
+      "module_path": "github.com/faustbrian/go-fault-injection/benchmarks/comparison",
+      "go_version": "1.26.6",
+      "packages": [],
+      "purpose": "This non-releasable module isolates comparison dependencies from the core fault-injection module. All candidates return a caller-visible error. The fault-injection and goresilience cases prevent the wrapped operation from running; the direct double is the minimum equivalent test outcome.",
+      "lifecycle": "internal",
+      "kind": "benchmark harness",
+      "releasable": false,
+      "version": "unreleased",
+      "tag_prefix": "benchmarks/comparison/v",
+      "owned_dependencies": [
+        "github.com/faustbrian/go-fault-injection"
+      ],
+      "reverse_owned_dependencies": [],
+      "external_runtime_dependencies": [
+        "github.com/failsafe-go/failsafe-go",
+        "github.com/slok/goresilience"
+      ],
+      "required_services": [],
+      "build_tags": [],
+      "test_tags": [],
+      "interoperability_tools": [],
+      "specifications": [],
+      "conformance_corpora": [],
+      "provenance": [],
+      "goal_files": [],
+      "goal_status": "not-applicable",
+      "goal_evidence": [],
+      "gates": {
+        "api_compatibility": false,
+        "benchmarks": false,
+        "conformance": false,
+        "coverage": false,
+        "documentation": true,
+        "fuzz": false,
+        "lint": true,
+        "mutation": false,
+        "race": false,
+        "security": true,
+        "tests": true
+      }
+    },
+    {
+      "directory": "integration/resilience",
+      "module_path": "github.com/faustbrian/go-fault-injection/integration/resilience",
+      "go_version": "1.26.6",
+      "packages": [],
+      "purpose": "This non-releasable module proves that `fault-injection` can drive deterministic campaigns through the public retry and circuit-breaker contracts. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
+      "lifecycle": "internal",
+      "kind": "interoperability harness",
+      "releasable": false,
+      "version": "unreleased",
+      "tag_prefix": "integration/resilience/v",
+      "owned_dependencies": [
+        "github.com/faustbrian/go-circuit-breaker",
+        "github.com/faustbrian/go-fault-injection",
+        "github.com/faustbrian/go-resilience",
+        "github.com/faustbrian/go-retry"
+      ],
+      "reverse_owned_dependencies": [],
+      "external_runtime_dependencies": [],
+      "required_services": [],
+      "build_tags": [],
+      "test_tags": [],
+      "interoperability_tools": [],
+      "specifications": [],
+      "conformance_corpora": [],
+      "provenance": [],
+      "goal_files": [],
+      "goal_status": "not-applicable",
+      "goal_evidence": [],
+      "gates": {
+        "api_compatibility": false,
+        "benchmarks": false,
+        "conformance": false,
+        "coverage": false,
+        "documentation": true,
+        "fuzz": false,
+        "lint": true,
+        "mutation": false,
+        "race": false,
+        "security": true,
+        "tests": true
+      }
+    }
+  ]
+}

@@ -1,10 +1,10 @@
-module github.com/faustbrian/golib/pkg/fault-injection/benchmarks/comparison
+module github.com/faustbrian/go-fault-injection/benchmarks/comparison
 
 go 1.26.6
 
 require (
 	github.com/failsafe-go/failsafe-go v0.9.6
-	github.com/faustbrian/golib/pkg/fault-injection v0.0.0
+	github.com/faustbrian/go-fault-injection v1.0.0
 	github.com/slok/goresilience v0.2.0
 )
 
