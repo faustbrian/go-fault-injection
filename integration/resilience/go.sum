@@ -4,13 +4,13 @@ github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1x
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/failsafe-go/failsafe-go v0.9.6 h1:vPSH2cry0Ee5cnR9wc9qshCDO6jdrMA9elBJNwyo4Uk=
 github.com/failsafe-go/failsafe-go v0.9.6/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
-github.com/faustbrian/go-circuit-breaker v1.0.0 h1:/PoJSTpwOkHTP/0M9oJM6YYUC5PuaxV/lCdfWHf6hGQ=
+github.com/faustbrian/go-circuit-breaker v1.0.0 h1:77UQzAgaARo/+ENv8fyO1bL08d0JkckIEDeuTJOcjB8=
 github.com/faustbrian/go-circuit-breaker v1.0.0/go.mod h1:tJ8Xfrv6DG0NiGErqKERXkiBLsyNzOIZ5MZVoD36jEU=
-github.com/faustbrian/go-fault-injection v1.0.0 h1:i5jPgJE06fqaF+eEIOw9O60X2u2TlREdN8JwxGClhZ4=
+github.com/faustbrian/go-fault-injection v1.0.0 h1:CmGGnsuz21TJsrg5XU79LZcXyQUNca0rqKfUXeXRS4s=
 github.com/faustbrian/go-fault-injection v1.0.0/go.mod h1:R28hxf8fsgFIObn7W7O9pznu8EOWCVvCdhphKFvRptU=
-github.com/faustbrian/go-resilience v1.0.0 h1:slIIORsJeqftmirFZQYY67hre6YSlMqjBLc0AuAx0ZA=
+github.com/faustbrian/go-resilience v1.0.0 h1:ldeYsYsJiC46Vs2gvN+m/pQvZBYmjqPisCXm7uFKelY=
 github.com/faustbrian/go-resilience v1.0.0/go.mod h1:Mae7tmxMXqaSjuOyhIK8Jjq36oBE64+KOvIaLYh2dp8=
-github.com/faustbrian/go-retry v1.0.0 h1:0EvvvgWNo6yuewIZ7OJRukfUul+6I0zth3pwkeSpuiA=
+github.com/faustbrian/go-retry v1.0.0 h1:/8PJjc4kX+fmtZlfDnIQ535Cmwpaeso6ZTI87QfF1Ro=
 github.com/faustbrian/go-retry v1.0.0/go.mod h1:j4dVz5BmIqhx+jwx6JvSTEbnK5KCf5yIH6LSirDR19w=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
