@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgrade the Prometheus comparison dependency to its current secure release.
+
 - Exclude intentional nested modules from root local-proxy archives so local,
   bootstrap, CI, and public module checksums describe the same source
   boundary.
