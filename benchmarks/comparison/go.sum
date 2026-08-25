@@ -6,7 +6,7 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/failsafe-go/failsafe-go v0.9.6 h1:vPSH2cry0Ee5cnR9wc9qshCDO6jdrMA9elBJNwyo4Uk=
 github.com/failsafe-go/failsafe-go v0.9.6/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
-github.com/faustbrian/go-fault-injection v1.0.0 h1:M7rjS/tHvua16qZcJsaQht46O3Zhr1j4c0wwhdBaSCM=
+github.com/faustbrian/go-fault-injection v1.0.0 h1:+gSRpozpLZneVjYVGd5WiL1AjVfiP6NRppvykq0HEG4=
 github.com/faustbrian/go-fault-injection v1.0.0/go.mod h1:R28hxf8fsgFIObn7W7O9pznu8EOWCVvCdhphKFvRptU=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
