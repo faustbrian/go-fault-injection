@@ -9,6 +9,11 @@
 
 ## Changes
 
+The repository contract is provided by the released golib CLI. Use the thin
+Makefile targets for local checks; package-specific verification remains in
+the repository while shared gate implementations and tool versions are
+maintained by go-library-tools.
+
 Keep commits focused and conventional. Update every affected changelog with
 the behavior and migration impact. Public API changes require compatibility
 evidence and documentation. Specification behavior requires a decision record,

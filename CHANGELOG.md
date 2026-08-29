@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Adopt the released go-library-tools v1.0.4 contract through a pinned
+  reusable workflow and strict repository configuration while preserving
+  the root API baseline and approved mutation evidence.
+
+### Documentation
+
+- Use task-oriented README headings instead of internal planning terminology.
+
+- Replace the archived monorepo link with package-owned documentation.
+
 ## [1.0.0] - 2026-08-25
 
 ### Changed
@@ -34,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- Link the package README to the repository-wide Golib documentation portal.
+- Link the package README to package-owned documentation.
 
 ### Added
 

@@ -101,7 +101,7 @@ rollout coordination, and disruption are owned by an external orchestrator.
 See [Kubernetes semantics](docs/kubernetes.md) and the
 [Toxiproxy comparison](docs/comparison.md).
 
-## Adoption and tradeoffs
+## Choosing the right test boundary
 
 Use this module when deterministic call- or adapter-boundary behavior is the
 contract under test. Prefer a direct test double for a single isolated return
@@ -145,8 +145,3 @@ See also [FAQ](docs/faq.md), [security policy](SECURITY.md), and
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Ecosystem
-
-Use the [Golib documentation portal](https://github.com/faustbrian/golib/blob/main/docs/index.md)
-to choose companion packages, supported stacks, recipes, and operations guidance.
