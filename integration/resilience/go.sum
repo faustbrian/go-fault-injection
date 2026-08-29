@@ -10,7 +10,7 @@ github.com/faustbrian/go-fault-injection v1.0.0 h1:CXMoD7DksHdPWgEd3HzIRx1gLOYRg
 github.com/faustbrian/go-fault-injection v1.0.0/go.mod h1:R28hxf8fsgFIObn7W7O9pznu8EOWCVvCdhphKFvRptU=
 github.com/faustbrian/go-resilience v1.0.0 h1:ldeYsYsJiC46Vs2gvN+m/pQvZBYmjqPisCXm7uFKelY=
 github.com/faustbrian/go-resilience v1.0.0/go.mod h1:Mae7tmxMXqaSjuOyhIK8Jjq36oBE64+KOvIaLYh2dp8=
-github.com/faustbrian/go-retry v1.0.0 h1:hK5qmntoeDlHiHu8r2lNZSvfoUqQGBcNw1uGqP5n2bk=
+github.com/faustbrian/go-retry v1.0.0 h1:/8PJjc4kX+fmtZlfDnIQ535Cmwpaeso6ZTI87QfF1Ro=
 github.com/faustbrian/go-retry v1.0.0/go.mod h1:j4dVz5BmIqhx+jwx6JvSTEbnK5KCf5yIH6LSirDR19w=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
