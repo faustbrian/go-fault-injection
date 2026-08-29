@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Adopt the released go-library-tools v1.0.4 contract through a pinned
+  reusable workflow and strict repository configuration while preserving
+  the root API baseline and approved mutation evidence.
+
 ### Documentation
 
 - Use task-oriented README headings instead of internal planning terminology.
