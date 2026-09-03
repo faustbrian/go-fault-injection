@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Adopt the checksum-verified `go-library-tools` v1.4.0 CLI and immutable W14
+  reusable workflow, and reconcile nested Golib dependency checksums with
+  their published v1.0.0 archives without changing selected versions, the
+  fault-injection API, or runtime behavior.
+
 - Publish schema-v2 cohesion metadata for the public fault-injection module,
   including its ownership, construction, lifecycle, and companion boundaries.
 - Adopt checksum-verified go-library-tools v1.3.0 validation locally and pin
@@ -19,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the root API baseline and approved mutation evidence.
 
 ### Documentation
+
+- Link ecosystem and resilience-family guidance to the immutable v1.4.0
+  documentation release.
 
 - Document copied configuration data and the retained lifetime of borrowed
   injector and runtime collaborators.
