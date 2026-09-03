@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Publish schema-v2 cohesion metadata for the public fault-injection module,
+  including its ownership, construction, lifecycle, and companion boundaries.
+- Adopt checksum-verified go-library-tools v1.3.0 validation locally and pin
+  CI to its immutable cohesion-enforcing reusable workflow.
+
 - Adopt the released go-library-tools v1.0.13 contract through a pinned
   reusable workflow and strict repository configuration while preserving
   the root API baseline and approved mutation evidence.
 
 ### Documentation
+
+- Document copied configuration data and the retained lifetime of borrowed
+  injector and runtime collaborators.
+- Link the package entry point to the versioned Golib ecosystem and resilience
+  family guidance.
 
 - Use task-oriented README headings instead of internal planning terminology.
 
