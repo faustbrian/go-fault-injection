@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "repository": "github.com/faustbrian/go-fault-injection",
   "go_version": "1.26.6",
   "modules": [
@@ -61,6 +61,79 @@
         "race": true,
         "security": true,
         "tests": true
+      },
+      "cohesion": {
+        "family": "resilience",
+        "secondary_capabilities": [
+          "resilience-and-admission",
+          "testing-and-conformance"
+        ],
+        "responsibility": "Provide deterministic, bounded fault schedules, failure wrappers, and a fail-closed runtime for tests and explicitly authorized controlled experiments.",
+        "non_goals": [
+          "Provide a mocking framework, production chaos control plane, fleet orchestrator, broker simulator, or transparent network proxy."
+        ],
+        "public_package_identifier": "faultinject",
+        "primary_entry_packages": [
+          "github.com/faustbrian/go-fault-injection"
+        ],
+        "package_selection": {
+          "github.com/faustbrian/go-fault-injection": "Use for deterministic failure campaigns at explicit function, HTTP, I/O, network, filesystem, sleeper, and timer boundaries."
+        },
+        "lifecycle_status": "active",
+        "maturity": "stable",
+        "construction_styles": [
+          "new-config",
+          "plain-function"
+        ],
+        "lifecycle_styles": [
+          "stateless"
+        ],
+        "ownership": {
+          "configuration": "caller",
+          "mutable_inputs": [
+            "borrow",
+            "copy"
+          ],
+          "runtime_resources": "caller",
+          "background_work": "none"
+        },
+        "optional_owned_dependencies": [],
+        "adapters": [],
+        "companions": [
+          "github.com/faustbrian/go-circuit-breaker",
+          "github.com/faustbrian/go-resilience",
+          "github.com/faustbrian/go-retry"
+        ],
+        "supported_go": {
+          "minimum": "1.26.6",
+          "tested": [
+            "1.26.6"
+          ]
+        },
+        "supported_platforms": [
+          "portable-go"
+        ],
+        "supported_backends": [],
+        "supported_protocols": [],
+        "documentation": {
+          "readme": "README.md",
+          "api": "docs/api.md",
+          "adoption": "docs/operations.md",
+          "security": "docs/safety.md",
+          "compatibility": "COMPATIBILITY.md",
+          "performance": "docs/performance.md",
+          "examples": "example_test.go",
+          "faq": "docs/faq.md",
+          "changelog": "CHANGELOG.md",
+          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-fault-injection",
+          "ecosystem_index": "https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/README.md"
+        },
+        "known_good_compatibility_sets": [],
+        "delivery": {
+          "implementation": "not-started",
+          "hardening": "not-started",
+          "release": "not-started"
+        }
       }
     },
     {
@@ -72,6 +145,10 @@
       "lifecycle": "internal",
       "kind": "benchmark harness",
       "releasable": false,
+      "family": "resilience",
+      "family_label": "Resilience",
+      "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
+      "family_order": 5,
       "version": "unreleased",
       "tag_prefix": "benchmarks/comparison/v",
       "owned_dependencies": [
@@ -115,6 +192,10 @@
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,
+      "family": "resilience",
+      "family_label": "Resilience",
+      "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
+      "family_order": 5,
       "version": "unreleased",
       "tag_prefix": "integration/resilience/v",
       "owned_dependencies": [

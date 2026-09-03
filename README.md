@@ -19,6 +19,10 @@ worker, unbounded history, or remote control surface.
 It is not a mocking framework, production chaos control plane, Kubernetes
 operator, broker simulator, or substitute for a real network proxy.
 
+Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/README.md)
+and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/design-language.md#package-families-and-selection)
+to compare focused policies and composition boundaries.
+
 ## Quick start
 
 ```go
@@ -45,6 +49,12 @@ value, err := faultinject.Run(ctx, injector,
 Construct the injector inside the test or experiment composition root and pass
 it explicitly to adapters. A nil or zero `Injector` delegates directly and
 cannot become active later.
+
+Constructors copy slices and fault value data. Interface collaborators are
+borrowed: keep `Clock`, `Sleeper`, and `Observer` valid for the `Injector`
+lifetime, and keep the `Injector`, `Authorizer`, `Clock`, and `Auditor` valid
+for the `Runtime` lifetime. Collaborators may be invoked concurrently and must
+satisfy the concurrency contract documented by their interface.
 
 ## Deterministic model
 
