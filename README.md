@@ -23,6 +23,14 @@ Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-li
 and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare focused policies and composition boundaries.
 
+The module is a stable v1 public library. It requires Go 1.26.6 or newer.
+
+## Install
+
+```sh
+go get github.com/faustbrian/go-fault-injection@v1
+```
+
 ## Quick start
 
 ```go
@@ -45,6 +53,12 @@ if err != nil {
 value, err := faultinject.Run(ctx, injector,
     faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, operation)
 ```
+
+## Lifecycle and ownership
+
+An `Injector` and optional `Runtime` own only bounded in-memory rule, schedule,
+counter, allowlist, and safety-gate state. They start no goroutines and own no
+external resources or shutdown operation. Both are safe for concurrent use.
 
 Construct the injector inside the test or experiment composition root and pass
 it explicitly to adapters. A nil or zero `Injector` delegates directly and
@@ -149,8 +163,17 @@ supply-chain, and clean-consumer checks.
 - [Go context](https://pkg.go.dev/context)
 - [Kubernetes pod lifecycle](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/)
 
-See also [FAQ](docs/faq.md), [security policy](SECURITY.md), and
-[performance methodology](docs/performance.md), and [changelog](CHANGELOG.md).
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [API and adapter contracts](docs/api.md)
+- [Safety and controlled runtime experiments](docs/safety.md)
+- [Performance methodology](docs/performance.md)
+- [FAQ](docs/faq.md)
+- [Support](SUPPORT.md)
+- [Security policy and reporting guidance](SECURITY.md)
+- [Compatibility policy](COMPATIBILITY.md)
+- [Release history](CHANGELOG.md)
 
 ## License
 
