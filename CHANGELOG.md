@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Add canonical v1 installation, stable Go support, lifecycle and ownership,
+  project support, and security-reporting guidance.
+
 - Link ecosystem and resilience-family guidance to the immutable v1.4.0
   documentation release.
 
