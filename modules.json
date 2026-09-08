@@ -188,7 +188,7 @@
       "module_path": "github.com/faustbrian/go-fault-injection/integration/resilience",
       "go_version": "1.26.6",
       "packages": [],
-      "purpose": "This non-releasable module proves that `fault-injection` can drive deterministic campaigns through the public retry and circuit-breaker contracts. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
+      "purpose": "This non-releasable module proves that `fault-injection` can drive deterministic campaigns through the public strict retry and circuit-breaker contracts. Its in-process retry operations report known outcomes. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,
