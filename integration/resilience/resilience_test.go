@@ -17,7 +17,7 @@ func TestInjectorDrivesRetryRecoveryWithoutProductionDependency(t *testing.T) {
 	t.Parallel()
 
 	injector := firstCallInjector(t)
-	policy, err := retry.NewPolicy(retry.Config{
+	policy, err := retry.NewPolicyStrict(retry.Config{
 		Backoff: retry.Constant(0), MaxAttempts: 2,
 		Clock: retry.SystemClock{}, Sleeper: retry.SystemSleeper{},
 		Classifier: retry.RetryableClassifier(),
@@ -26,19 +26,19 @@ func TestInjectorDrivesRetryRecoveryWithoutProductionDependency(t *testing.T) {
 		t.Fatal(err)
 	}
 	calls := 0
-	value, result, err := retry.Do(context.Background(), policy, func(ctx context.Context) (string, error) {
+	result, err := retry.DoStrict(context.Background(), policy, func(ctx context.Context) (retry.AttemptResult[string], error) {
 		calls++
 		value, runErr := faultinject.Run(ctx, injector,
 			faultinject.Metadata{Boundary: faultinject.BoundaryFunction},
 			func(context.Context) (string, error) { return "recovered", nil },
 		)
 		if runErr != nil {
-			return "", retry.Retryable(runErr)
+			return retry.AttemptResult[string]{Outcome: retry.OutcomeKnown}, retry.Retryable(runErr)
 		}
-		return value, nil
+		return retry.AttemptResult[string]{Value: value, Outcome: retry.OutcomeKnown}, nil
 	})
-	if err != nil || value != "recovered" || calls != 2 || result.Attempts != 2 || result.Reason != retry.ReasonSucceeded {
-		t.Fatalf("retry campaign = %q, %+v, %v, calls=%d", value, result, err, calls)
+	if err != nil || result.Value != "recovered" || result.Outcome != retry.OutcomeKnown || calls != 2 || result.Retry.Attempts != 2 || result.Retry.Reason != retry.ReasonSucceeded {
+		t.Fatalf("retry campaign = %+v, %v, calls=%d", result, err, calls)
 	}
 }
 
