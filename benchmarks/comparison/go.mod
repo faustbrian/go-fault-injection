@@ -3,7 +3,7 @@ module github.com/faustbrian/go-fault-injection/benchmarks/comparison
 go 1.27.0
 
 require (
-	github.com/failsafe-go/failsafe-go v0.9.6
+	github.com/failsafe-go/failsafe-go v0.9.7
 	github.com/faustbrian/go-fault-injection v1.0.0
 	github.com/slok/goresilience v0.2.0
 )
@@ -17,5 +17,6 @@ require (
 	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
