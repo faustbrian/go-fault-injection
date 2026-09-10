@@ -7,7 +7,7 @@
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-fault-injection.svg)](https://pkg.go.dev/github.com/faustbrian/go-fault-injection)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-fault-injection?sort=semver)](https://github.com/faustbrian/go-fault-injection/releases)
-[![Go](https://img.shields.io/badge/go-1.26.6-00ADD8?logo=go)](https://go.dev/)
+[![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 `fault-injection` is a deterministic, concurrency-safe, bounded toolkit for
@@ -23,7 +23,7 @@ Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-li
 and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare focused policies and composition boundaries.
 
-The module is a stable v1 public library. It requires Go 1.26.6 or newer.
+The module is a stable v1 public library. It requires Go 1.27.0 or newer.
 
 ## Install
 
