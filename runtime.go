@@ -67,8 +67,9 @@ type RuntimeConfig struct {
 	Auditor            Auditor
 }
 
-// Runtime is an optional fail-closed gate for explicitly wired controlled
-// experiments. Disable is terminal and concurrency-safe.
+// Runtime is the fail-closed application gate for explicitly wired controlled
+// experiments. A nil or zero Runtime disables built-in fault application.
+// Disable is terminal and concurrency-safe.
 type Runtime struct {
 	injector    *Injector
 	authorizer  Authorizer
@@ -129,6 +130,9 @@ func NewRuntime(config RuntimeConfig) (*Runtime, error) {
 // Decide applies the fail-closed runtime safety gates before evaluating the
 // underlying injector.
 func (runtime *Runtime) Decide(ctx context.Context, metadata Metadata) Decision {
+	if runtime == nil || runtime.injector == nil {
+		return Decision{}
+	}
 	now, clockOK := runtimeNow(runtime.clock)
 	if !clockOK {
 		runtime.audit(metadata, AuditClockFailure, Decision{}, time.Time{})
@@ -157,6 +161,14 @@ func (runtime *Runtime) Decide(ctx context.Context, metadata Metadata) Decision 
 	decision := runtime.injector.Decide(metadata)
 	runtime.audit(metadata, AuditEvaluated, decision, now)
 	return decision
+}
+
+func (runtime *Runtime) active() bool {
+	return runtime != nil && runtime.injector != nil
+}
+
+func (runtime *Runtime) sleeper() Sleeper {
+	return runtime.injector.sleeper
 }
 
 func (runtime *Runtime) reserve() bool {

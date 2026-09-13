@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 var errInjected = errors.New("injected")

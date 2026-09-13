@@ -9,35 +9,35 @@ import (
 
 // WrapListener injects bounded accept faults while delegating address and
 // close ownership to base. Connections rejected after acceptance are closed.
-func WrapListener(base net.Listener, injector *Injector, operation uint32) (net.Listener, error) {
+func WrapListener(base net.Listener, runtime *Runtime, operation uint32) (net.Listener, error) {
 	if base == nil {
 		return nil, invalid("Listener", "must be non-nil")
 	}
-	if injector == nil || !injector.enabled {
+	if !runtime.active() {
 		return base, nil
 	}
-	return &injectedListener{Listener: base, injector: injector, operation: operation}, nil
+	return &injectedListener{Listener: base, runtime: runtime, operation: operation}, nil
 }
 
 type injectedListener struct {
 	net.Listener
-	injector  *Injector
+	runtime   *Runtime
 	operation uint32
 }
 
 func (listener *injectedListener) Accept() (net.Conn, error) {
-	decision := listener.injector.Decide(Metadata{Boundary: BoundaryListen, Operation: listener.operation})
+	decision := listener.runtime.Decide(context.Background(), Metadata{Boundary: BoundaryListen, Operation: listener.operation})
 	if !decision.Injected() {
 		return listener.Listener.Accept()
 	}
-	if err := faultPhaseError(context.Background(), decision.faults, PhaseBefore, listener.injector.sleeper); err != nil {
+	if err := faultPhaseError(context.Background(), decision.faults, PhaseBefore, listener.runtime.sleeper()); err != nil {
 		return nil, err
 	}
-	if err := faultPhaseError(context.Background(), decision.faults, PhaseDuring, listener.injector.sleeper); err != nil {
+	if err := faultPhaseError(context.Background(), decision.faults, PhaseDuring, listener.runtime.sleeper()); err != nil {
 		return nil, err
 	}
 	connection, organicError := listener.Listener.Accept()
-	if err := faultPhaseError(context.Background(), decision.faults, PhaseAfter, listener.injector.sleeper); err != nil {
+	if err := faultPhaseError(context.Background(), decision.faults, PhaseAfter, listener.runtime.sleeper()); err != nil {
 		closeConnection(connection)
 		return nil, err
 	}
@@ -49,26 +49,26 @@ type DialContextFunc func(context.Context, string, string) (net.Conn, error)
 
 // WrapDialer injects bounded establishment faults. A connection rejected by a
 // during or after fault is closed before the injected error is returned.
-func WrapDialer(base DialContextFunc, injector *Injector, operation uint32) DialContextFunc {
-	if injector == nil || !injector.enabled {
+func WrapDialer(base DialContextFunc, runtime *Runtime, operation uint32) DialContextFunc {
+	if !runtime.active() {
 		return base
 	}
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		decision := injector.Decide(Metadata{Boundary: BoundaryDial, Operation: operation})
+		decision := runtime.Decide(ctx, Metadata{Boundary: BoundaryDial, Operation: operation})
 		if !decision.Injected() {
 			return base(ctx, network, address)
 		}
-		if err := faultPhaseError(ctx, decision.faults, PhaseBefore, injector.sleeper); err != nil {
+		if err := faultPhaseError(ctx, decision.faults, PhaseBefore, runtime.sleeper()); err != nil {
 			return nil, err
 		}
-		operationContext, cleanup, duringError := prepareDuring(ctx, injector.sleeper, decision.faults)
+		operationContext, cleanup, duringError := prepareDuring(ctx, runtime.sleeper(), decision.faults)
 		defer cleanup()
 		connection, organicError := base(operationContext, network, address)
 		if duringError != nil {
 			closeConnection(connection)
 			return nil, duringError
 		}
-		if err := faultPhaseError(ctx, decision.faults, PhaseAfter, injector.sleeper); err != nil {
+		if err := faultPhaseError(ctx, decision.faults, PhaseAfter, runtime.sleeper()); err != nil {
 			closeConnection(connection)
 			return nil, err
 		}
@@ -78,18 +78,18 @@ func WrapDialer(base DialContextFunc, injector *Injector, operation uint32) Dial
 
 // WrapConn preserves the net.Conn deadline, address, close, and concurrent
 // read/write surface while applying independent operation identifiers.
-func WrapConn(connection net.Conn, injector *Injector, readOperation, writeOperation uint32) net.Conn {
-	if injector == nil || !injector.enabled {
+func WrapConn(connection net.Conn, runtime *Runtime, readOperation, writeOperation uint32) net.Conn {
+	if !runtime.active() {
 		return connection
 	}
 	return &injectedConn{
 		Conn: connection,
 		reader: &injectedReader{
-			reader: connection, injector: injector,
+			reader: connection, runtime: runtime,
 			operation: readOperation, boundary: BoundaryConn,
 		},
 		writer: &injectedWriter{
-			writer: connection, injector: injector,
+			writer: connection, runtime: runtime,
 			operation: writeOperation, boundary: BoundaryConn,
 		},
 	}

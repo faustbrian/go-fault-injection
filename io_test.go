@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestReaderAppliesBoundedByteFaults(t *testing.T) {
@@ -33,7 +33,7 @@ func TestReaderAppliesBoundedByteFaults(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			injector := scopedInjector(t, faultinject.BoundaryReader, test.fault)
+			injector := scopedRuntime(t, faultinject.BoundaryReader, test.fault)
 			reader := faultinject.WrapReader(bytes.NewBufferString("abcd"), injector, 11)
 			for call := range test.reads {
 				buffer := make([]byte, 8)
@@ -78,7 +78,7 @@ func TestWriterAppliesBoundedByteFaults(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			var destination bytes.Buffer
-			injector := scopedInjector(t, faultinject.BoundaryWriter, test.fault)
+			injector := scopedRuntime(t, faultinject.BoundaryWriter, test.fault)
 			writer := faultinject.WrapWriter(&destination, injector, 12)
 			n, err := writer.Write([]byte("abcd"))
 			if n != test.wantN || destination.String() != test.wantBytes || !errors.Is(err, test.wantError) {
@@ -96,7 +96,7 @@ func TestWriterComposesBoundedTransformsWithoutDiscardingSuffix(t *testing.T) {
 	rule.Faults = append(rule.Faults,
 		faultinject.ByteFault(faultinject.KindReorder, faultinject.PhaseDuring, 2, 0),
 	)
-	injector := injectorWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{rule}})
+	injector := runtimeWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{rule}})
 	var destination bytes.Buffer
 
 	n, err := faultinject.WrapWriter(&destination, injector, 12).Write([]byte("abcd"))
@@ -109,7 +109,7 @@ func TestIOFaultsPreservePartialResultsAndExposeNetworkClass(t *testing.T) {
 	t.Parallel()
 
 	partial := &partialWriter{err: errInjected}
-	writer := faultinject.WrapWriter(partial, scopedInjector(t, faultinject.BoundaryWriter,
+	writer := faultinject.WrapWriter(partial, scopedRuntime(t, faultinject.BoundaryWriter,
 		faultinject.ErrorFault(faultinject.PhaseAfter, faultinject.ErrConnectionReset)), 1)
 	n, err := writer.Write([]byte("abcd"))
 	if n != 2 || !errors.Is(err, faultinject.ErrConnectionReset) {
@@ -123,7 +123,7 @@ func TestIOFaultsPreservePartialResultsAndExposeNetworkClass(t *testing.T) {
 		{kind: faultinject.KindTemporary, temporary: true},
 		{kind: faultinject.KindPermanent, temporary: false},
 	} {
-		reader := faultinject.WrapReader(bytes.NewBufferString("data"), scopedInjector(t,
+		reader := faultinject.WrapReader(bytes.NewBufferString("data"), scopedRuntime(t,
 			faultinject.BoundaryReader, faultinject.ByteFault(test.kind, faultinject.PhaseBefore, 0, 0)), 1)
 		_, err := reader.Read(make([]byte, 4))
 		var networkError net.Error

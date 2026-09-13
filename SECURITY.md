@@ -23,10 +23,13 @@ fixture, event, log, or initial contact request.
 
 ## Activation boundary
 
-The zero injector is disabled. The package does not read environment variables,
+The zero runtime is disabled. The package does not read environment variables,
 configuration files, flags, network endpoints, or global registries. Tests
-construct an `Injector` explicitly. Runtime experiment wiring must use the
-fail-closed `Runtime` gate described in [docs/safety.md](docs/safety.md).
+construct an `Injector` and `Runtime` explicitly. Every built-in fault
+application API accepts only the fail-closed runtime gate described in
+[docs/safety.md](docs/safety.md); direct injector wiring cannot apply faults
+through package adapters. See the versioned
+[threat model](docs/threat-model.md) for security boundaries and residual risk.
 
 ## Supported reports
 

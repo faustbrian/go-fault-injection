@@ -43,6 +43,6 @@ Use caller contexts to bound latency and blocked delegated operations.
 
 ## Removal
 
-Remove the explicitly wired injector or pass nil. There is no ambient rule
-registry or environment switch to clean up. For runtime experiments, invoke
-the terminal emergency disable first, then remove the composition-root wiring.
+Invoke the terminal emergency disable, then remove the explicitly wired runtime
+or pass nil. There is no ambient rule registry or environment switch to clean
+up.

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestConnPreservesContractAndAppliesResetAndHalfClose(t *testing.T) {
@@ -16,7 +16,7 @@ func TestConnPreservesContractAndAppliesResetAndHalfClose(t *testing.T) {
 	t.Run("read reset closes connection", func(t *testing.T) {
 		t.Parallel()
 		base := &trackingConn{}
-		conn := faultinject.WrapConn(base, scopedInjector(t, faultinject.BoundaryConn,
+		conn := faultinject.WrapConn(base, scopedRuntime(t, faultinject.BoundaryConn,
 			faultinject.ByteFault(faultinject.KindReset, faultinject.PhaseBefore, 0, 0)), 1, 2)
 		n, err := conn.Read(make([]byte, 1))
 		if n != 0 || !errors.Is(err, faultinject.ErrConnectionReset) || !base.closed {
@@ -27,7 +27,7 @@ func TestConnPreservesContractAndAppliesResetAndHalfClose(t *testing.T) {
 	t.Run("write half-close uses CloseWrite", func(t *testing.T) {
 		t.Parallel()
 		base := &trackingConn{}
-		conn := faultinject.WrapConn(base, scopedInjector(t, faultinject.BoundaryConn,
+		conn := faultinject.WrapConn(base, scopedRuntime(t, faultinject.BoundaryConn,
 			faultinject.ByteFault(faultinject.KindHalfClose, faultinject.PhaseBefore, 0, 0)), 1, 2)
 		n, err := conn.Write([]byte("x"))
 		if n != 0 || !errors.Is(err, faultinject.ErrHalfClosed) || !base.writeClosed {
@@ -51,7 +51,7 @@ func TestDialerClosesConnectionsRejectedAfterEstablishment(t *testing.T) {
 	base := faultinject.DialContextFunc(func(context.Context, string, string) (net.Conn, error) {
 		return baseConn, nil
 	})
-	dial := faultinject.WrapDialer(base, scopedInjector(t, faultinject.BoundaryDial,
+	dial := faultinject.WrapDialer(base, scopedRuntime(t, faultinject.BoundaryDial,
 		faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 1)
 	conn, err := dial(context.Background(), "tcp", "example.test:80")
 	if conn != nil || !errors.Is(err, errInjected) || !baseConn.closed {

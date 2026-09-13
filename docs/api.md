@@ -8,11 +8,12 @@
 - `(*Injector).Snapshot() Snapshot` returns bounded aggregate and per-rule
   counters in precedence order.
 - `(*Injector).Reset() uint64` clears counters and advances the generation.
-- `Run[T]` applies function-boundary phases and returns zero `T` for an injected
-  error.
+- `Run[T]` accepts a runtime, applies function-boundary phases, and returns zero
+  `T` for an injected error.
 
-The zero `Injector`, a nil `*Injector`, and adapters given nil injectors are
-disabled. `New(Config{})` is explicitly constructed but contains no rules.
+The zero `Injector` and a nil `*Injector` select no faults. A zero or nil
+`*Runtime` disables application. `New(Config{})` is explicitly constructed but
+contains no rules.
 
 ## Rules
 
@@ -57,7 +58,9 @@ released. Observer and clock panics cannot change a selected decision.
 
 `NewRuntime(RuntimeConfig)` requires an injector, `Authorizer`, exact allowlist,
 expiry, maximum evaluation budget, `Auditor`, and optional injected clock.
-`Decide` fails closed and emits an `AuditEvent`; `Disable` is terminal.
+`Decide` fails closed and emits an `AuditEvent`; `Disable` is terminal. Every
+package application API accepts `*Runtime`, not `*Injector`, and therefore
+cannot select and apply a fault outside these controls.
 
 ## Adapters
 

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestConfigurationBoundsAndDeclaredEnums(t *testing.T) {
@@ -201,8 +201,9 @@ func TestDuringLatencyFailureAndPanicAreApplied(t *testing.T) {
 		Rules: []faultinject.Rule{ruleWithFault("latency-error",
 			faultinject.LatencyFault(faultinject.PhaseDuring, time.Second))},
 	})
+	runtime := runtimeWithInjector(t, injector)
 	called := false
-	_, err := faultinject.Run(context.Background(), injector, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
+	_, err := faultinject.Run(context.Background(), runtime, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
 		called = true
 		return 0, nil
 	})
@@ -211,12 +212,13 @@ func TestDuringLatencyFailureAndPanicAreApplied(t *testing.T) {
 	}
 
 	injector = injectorWithFault(t, faultinject.PanicFault(faultinject.PhaseDuring, "during_panic"))
+	runtime = runtimeWithInjector(t, injector)
 	defer func() {
 		if recovered := recover(); recovered != "during_panic" {
 			t.Fatalf("panic = %#v", recovered)
 		}
 	}()
-	_, _ = faultinject.Run(context.Background(), injector, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
+	_, _ = faultinject.Run(context.Background(), runtime, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
 		return 0, nil
 	})
 }
@@ -252,7 +254,7 @@ func TestNilResetAndNoMatchRunRemainInert(t *testing.T) {
 		t.Fatal("nil reset was not inert")
 	}
 	active := injectorWithConfig(t, faultinject.Config{})
-	value, err := faultinject.Run(context.Background(), active, faultinject.Metadata{}, func(context.Context) (string, error) {
+	value, err := faultinject.Run(context.Background(), runtimeWithInjector(t, active), faultinject.Metadata{}, func(context.Context) (string, error) {
 		return "direct", nil
 	})
 	if value != "direct" || err != nil {

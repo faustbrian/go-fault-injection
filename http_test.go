@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestRoundTripperPreservesRequestAndResponseBodyOwnership(t *testing.T) {
@@ -26,7 +26,7 @@ func TestRoundTripperPreservesRequestAndResponseBodyOwnership(t *testing.T) {
 		transport, err := faultinject.NewRoundTripper(roundTripFunc(func(*http.Request) (*http.Response, error) {
 			called = true
 			return nil, nil
-		}), scopedInjector(t, faultinject.BoundaryHTTP, faultinject.ErrorFault(faultinject.PhaseBefore, errInjected)), 1, 2)
+		}), scopedRuntime(t, faultinject.BoundaryHTTP, faultinject.ErrorFault(faultinject.PhaseBefore, errInjected)), 1, 2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func TestRoundTripperPreservesRequestAndResponseBodyOwnership(t *testing.T) {
 		body := &trackingReadCloser{Reader: bytes.NewBufferString("response")}
 		transport, err := faultinject.NewRoundTripper(roundTripFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Body: body}, nil
-		}), scopedInjector(t, faultinject.BoundaryHTTP, faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 1, 2)
+		}), scopedRuntime(t, faultinject.BoundaryHTTP, faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 1, 2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +55,7 @@ func TestRoundTripperPreservesRequestAndResponseBodyOwnership(t *testing.T) {
 	t.Run("response body remains caller owned and faultable", func(t *testing.T) {
 		t.Parallel()
 		body := &trackingReadCloser{Reader: bytes.NewBufferString("response")}
-		injector := scopedInjector(t, faultinject.BoundaryHTTPBody,
+		injector := scopedRuntime(t, faultinject.BoundaryHTTPBody,
 			faultinject.ByteFault(faultinject.KindShortRead, faultinject.PhaseDuring, 3, 0))
 		transport, err := faultinject.NewRoundTripper(roundTripFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Body: body}, nil

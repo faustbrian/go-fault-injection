@@ -9,31 +9,31 @@ import "context"
 // error even if operation ignores it.
 func Run[T any](
 	ctx context.Context,
-	injector *Injector,
+	runtime *Runtime,
 	metadata Metadata,
 	operation func(context.Context) (T, error),
 ) (T, error) {
-	if injector == nil || !injector.enabled {
+	if !runtime.active() {
 		return operation(ctx)
 	}
-	decision := injector.Decide(metadata)
+	decision := runtime.Decide(ctx, metadata)
 	if !decision.Injected() {
 		return operation(ctx)
 	}
 
-	if err := applyImmediate(ctx, injector.sleeper, decision.faults, PhaseBefore); err != nil {
+	if err := applyImmediate(ctx, runtime.sleeper(), decision.faults, PhaseBefore); err != nil {
 		var zero T
 		return zero, err
 	}
 
-	operationContext, cleanup, injectedDuring := prepareDuring(ctx, injector.sleeper, decision.faults)
+	operationContext, cleanup, injectedDuring := prepareDuring(ctx, runtime.sleeper(), decision.faults)
 	defer cleanup()
 	value, operationError := operation(operationContext)
 	if injectedDuring != nil {
 		var zero T
 		return zero, injectedDuring
 	}
-	if err := applyImmediate(ctx, injector.sleeper, decision.faults, PhaseAfter); err != nil {
+	if err := applyImmediate(ctx, runtime.sleeper(), decision.faults, PhaseAfter); err != nil {
 		var zero T
 		return zero, err
 	}

@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func ExampleRun() {
@@ -22,12 +23,20 @@ func ExampleRun() {
 			faultinject.ErrorFault(faultinject.PhaseBefore, errUnavailable),
 		},
 	}}})
+	runtime, _ := faultinject.NewRuntime(faultinject.RuntimeConfig{
+		Injector:           injector,
+		Authorizer:         faultinject.AuthorizerFunc(func(context.Context, faultinject.Metadata) bool { return true }),
+		Allowlist:          []faultinject.Boundary{faultinject.BoundaryFunction},
+		ExpiresAt:          time.Now().Add(time.Minute),
+		MaximumEvaluations: 2,
+		Auditor:            faultinject.AuditorFunc(func(faultinject.AuditEvent) {}),
+	})
 	operation := func(context.Context) (string, error) { return "ok", nil }
 
-	value, err := faultinject.Run(context.Background(), injector,
+	value, err := faultinject.Run(context.Background(), runtime,
 		faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, operation)
 	fmt.Println(value, err)
-	value, err = faultinject.Run(context.Background(), injector,
+	value, err = faultinject.Run(context.Background(), runtime,
 		faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, operation)
 	fmt.Println(value, err)
 

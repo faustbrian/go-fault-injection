@@ -6,7 +6,7 @@
       "module_directory": ".",
       "directory": ".",
       "name": "faultinject",
-      "import_path": "github.com/faustbrian/go-fault-injection",
+      "import_path": "github.com/faustbrian/go-fault-injection/v2",
       "kind": "public",
       "production": true,
       "executable": true,

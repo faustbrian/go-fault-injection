@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestRuntimeRequiresExplicitAuthorizationAndBounds(t *testing.T) {
@@ -60,6 +60,26 @@ func TestRuntimeRequiresExplicitAuthorizationAndBounds(t *testing.T) {
 	}
 	if snapshot := gate.Snapshot(); !snapshot.Disabled || snapshot.Evaluations != 1 || snapshot.Remaining != 0 {
 		t.Fatalf("runtime snapshot = %+v", snapshot)
+	}
+}
+
+func TestNilAndZeroRuntimeDecisionsFailClosed(t *testing.T) {
+	t.Parallel()
+
+	var nilRuntime *faultinject.Runtime
+	zeroRuntime := &faultinject.Runtime{}
+	for name, runtime := range map[string]*faultinject.Runtime{
+		"nil":  nilRuntime,
+		"zero": zeroRuntime,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if runtime.Decide(context.Background(), faultinject.Metadata{
+				Boundary: faultinject.BoundaryFunction,
+			}).Injected() {
+				t.Fatal("disabled runtime injected")
+			}
+		})
 	}
 }
 

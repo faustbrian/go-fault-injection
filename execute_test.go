@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestRunAppliesPhasesInOrderWithInjectedSleeper(t *testing.T) {
@@ -31,8 +31,9 @@ func TestRunAppliesPhasesInOrderWithInjectedSleeper(t *testing.T) {
 			},
 		}},
 	})
+	runtime := runtimeWithInjector(t, injector)
 
-	value, err := faultinject.Run(context.Background(), injector, faultinject.Metadata{
+	value, err := faultinject.Run(context.Background(), runtime, faultinject.Metadata{
 		Boundary: faultinject.BoundaryFunction,
 	}, func(context.Context) (string, error) { return "value", nil })
 	if err != nil || value != "value" {
@@ -62,9 +63,9 @@ func TestRunHonorsErrorsCancellationDeadlinesAndPanic(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			injector := injectorWithFault(t, test.fault)
+			runtime := runtimeWithInjector(t, injectorWithFault(t, test.fault))
 			called := false
-			value, err := faultinject.Run(context.Background(), injector, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(ctx context.Context) (int, error) {
+			value, err := faultinject.Run(context.Background(), runtime, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(ctx context.Context) (int, error) {
 				called = true
 				if test.fault.Phase() == faultinject.PhaseDuring {
 					return 99, ctx.Err()
@@ -86,6 +87,7 @@ func TestRunHonorsErrorsCancellationDeadlinesAndPanic(t *testing.T) {
 	t.Run("panic", func(t *testing.T) {
 		t.Parallel()
 		injector := injectorWithFault(t, faultinject.PanicFault(faultinject.PhaseBefore, "safe_panic"))
+		runtime := runtimeWithInjector(t, injector)
 		defer func() {
 			if recovered := recover(); recovered != "safe_panic" {
 				t.Fatalf("panic = %#v", recovered)
@@ -94,7 +96,7 @@ func TestRunHonorsErrorsCancellationDeadlinesAndPanic(t *testing.T) {
 				t.Fatal("panic corrupted accounting")
 			}
 		}()
-		_, _ = faultinject.Run(context.Background(), injector, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
+		_, _ = faultinject.Run(context.Background(), runtime, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
 			return 1, nil
 		})
 	})
@@ -109,8 +111,9 @@ func TestRunPropagatesCallerCancellationDuringInjectedLatency(t *testing.T) {
 		Sleeper: blockingSleeper{},
 		Rules:   []faultinject.Rule{ruleWithFault("latency", faultinject.LatencyFault(faultinject.PhaseBefore, time.Second))},
 	})
+	runtime := runtimeWithInjector(t, injector)
 	called := false
-	_, err := faultinject.Run(ctx, injector, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
+	_, err := faultinject.Run(ctx, runtime, faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, func(context.Context) (int, error) {
 		called = true
 		return 0, nil
 	})
@@ -142,6 +145,47 @@ func injectorWithConfig(t *testing.T, configuration faultinject.Config) *faultin
 		t.Fatalf("New() error = %v", err)
 	}
 	return injector
+}
+
+func runtimeWithConfig(t *testing.T, configuration faultinject.Config) *faultinject.Runtime {
+	t.Helper()
+	return runtimeWithInjector(t, injectorWithConfig(t, configuration))
+}
+
+func scopedRuntime(t *testing.T, boundary faultinject.Boundary, fault faultinject.Fault) *faultinject.Runtime {
+	t.Helper()
+	return runtimeWithInjector(t, scopedInjector(t, boundary, fault), boundary)
+}
+
+func runtimeWithInjector(t testing.TB, injector *faultinject.Injector, boundaries ...faultinject.Boundary) *faultinject.Runtime {
+	t.Helper()
+	if len(boundaries) == 0 {
+		boundaries = []faultinject.Boundary{
+			faultinject.BoundaryFunction,
+			faultinject.BoundaryHTTP,
+			faultinject.BoundaryHTTPBody,
+			faultinject.BoundaryConn,
+			faultinject.BoundaryDial,
+			faultinject.BoundaryListen,
+			faultinject.BoundaryReader,
+			faultinject.BoundaryWriter,
+			faultinject.BoundaryClock,
+			faultinject.BoundaryFilesystemOpen,
+			faultinject.BoundaryFilesystemRead,
+		}
+	}
+	runtime, err := faultinject.NewRuntime(faultinject.RuntimeConfig{
+		Injector:           injector,
+		Authorizer:         faultinject.AuthorizerFunc(func(context.Context, faultinject.Metadata) bool { return true }),
+		Allowlist:          boundaries,
+		ExpiresAt:          time.Now().Add(time.Hour),
+		MaximumEvaluations: 1_000_000_000,
+		Auditor:            faultinject.AuditorFunc(func(faultinject.AuditEvent) {}),
+	})
+	if err != nil {
+		t.Fatalf("NewRuntime() error = %v", err)
+	}
+	return runtime
 }
 
 func mustInjector(t *testing.T, configuration faultinject.Config) *faultinject.Injector {

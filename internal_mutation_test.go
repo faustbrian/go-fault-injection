@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestInternalByteTransformPhaseAndEmptyGuards(t *testing.T) {
@@ -100,7 +101,7 @@ func TestInternalDuplicateRequiresCompleteFirstWrite(t *testing.T) {
 	base := &shortNilWriter{}
 	writer := &injectedWriter{
 		writer:   base,
-		injector: mustInternalInjector(t, BoundaryWriter, Fault{Kind: KindDuplicate, phase: PhaseAfter, limit: 2}),
+		runtime:  mustInternalRuntime(t, BoundaryWriter, Fault{Kind: KindDuplicate, phase: PhaseAfter, limit: 2}),
 		boundary: BoundaryWriter,
 	}
 	n, err := writer.Write([]byte("ab"))
@@ -127,6 +128,22 @@ func mustInternalInjector(t *testing.T, boundary Boundary, fault Fault) *Injecto
 		t.Fatal(err)
 	}
 	return injector
+}
+
+func mustInternalRuntime(t *testing.T, boundary Boundary, fault Fault) *Runtime {
+	t.Helper()
+	runtime, err := NewRuntime(RuntimeConfig{
+		Injector:           mustInternalInjector(t, boundary, fault),
+		Authorizer:         AuthorizerFunc(func(context.Context, Metadata) bool { return true }),
+		Allowlist:          []Boundary{boundary},
+		ExpiresAt:          time.Now().Add(time.Hour),
+		MaximumEvaluations: 1,
+		Auditor:            AuditorFunc(func(AuditEvent) {}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return runtime
 }
 
 var _ io.Writer = (*shortNilWriter)(nil)

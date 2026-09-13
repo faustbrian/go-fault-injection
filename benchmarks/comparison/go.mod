@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/failsafe-go/failsafe-go v0.9.6
-	github.com/faustbrian/go-fault-injection v1.0.0
+	github.com/faustbrian/go-fault-injection/v2 v2.0.0
 	github.com/slok/goresilience v0.2.0
 )
 

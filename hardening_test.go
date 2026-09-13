@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestConcurrentSelectionResetAndSnapshotRemainBounded(t *testing.T) {
@@ -107,7 +107,7 @@ func TestConcurrentAdapterCallsAndObserverDeliveryRemainAttributable(t *testing.
 		Rules: []faultinject.Rule{rule},
 	})
 	destination := &concurrentWriter{}
-	writer := faultinject.WrapWriter(destination, injector, 91)
+	writer := faultinject.WrapWriter(destination, runtimeWithInjector(t, injector), 91)
 
 	var wait sync.WaitGroup
 	for range 32 {
@@ -171,7 +171,7 @@ func FuzzByteAdaptersPreserveCallerBounds(f *testing.F) {
 			t.Fatal(err)
 		}
 		buffer := make([]byte, len(input))
-		n, err := faultinject.WrapReader(bytes.NewReader(input), injector, 1).Read(buffer)
+		n, err := faultinject.WrapReader(bytes.NewReader(input), runtimeWithInjector(t, injector), 1).Read(buffer)
 		if (err != nil && !errors.Is(err, io.EOF)) || n < 0 || n > len(buffer) {
 			t.Fatalf("Read() = %d, %v for buffer %d", n, err, len(buffer))
 		}
@@ -251,7 +251,7 @@ func FuzzWriterAdaptersPreserveCallerBounds(f *testing.F) {
 			t.Fatal(err)
 		}
 		var destination bytes.Buffer
-		n, writeErr := faultinject.WrapWriter(&destination, injector, 1).Write(input)
+		n, writeErr := faultinject.WrapWriter(&destination, runtimeWithInjector(t, injector), 1).Write(input)
 		if n < 0 || n > len(input) || !bytes.Equal(input, original) || destination.Len() > len(input)+limit {
 			t.Fatalf("Write() = %d, %v, destination=%d, input=%d", n, writeErr, destination.Len(), len(input))
 		}
@@ -327,7 +327,7 @@ func BenchmarkCorruptReader(b *testing.B) {
 	rule.Maximum = 1_000_000_000
 	rule.Faults = []faultinject.Fault{faultinject.ByteFault(faultinject.KindCorrupt, faultinject.PhaseAfter, 64, 1)}
 	injector := benchmarkInjector(b, faultinject.Config{Rules: []faultinject.Rule{rule}})
-	reader := faultinject.WrapReader(repeatingReader{}, injector, 1)
+	reader := faultinject.WrapReader(repeatingReader{}, runtimeWithInjector(b, injector), 1)
 	buffer := make([]byte, 64)
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -342,11 +342,12 @@ func BenchmarkInjectedLatency(b *testing.B) {
 		rule.Maximum = 1_000_000_000
 		rule.Faults = []faultinject.Fault{faultinject.LatencyFault(faultinject.PhaseBefore, time.Nanosecond)}
 		injector := benchmarkInjector(b, faultinject.Config{Sleeper: noOpBenchmarkSleeper{}, Rules: []faultinject.Rule{rule}})
+		runtime := runtimeWithInjector(b, injector)
 		metadata := faultinject.Metadata{Boundary: faultinject.BoundaryFunction}
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_, _ = faultinject.Run(context.Background(), injector, metadata, benchmarkSuccess)
+			_, _ = faultinject.Run(context.Background(), runtime, metadata, benchmarkSuccess)
 		}
 	})
 	b.Run("system-timer", func(b *testing.B) {
@@ -354,11 +355,12 @@ func BenchmarkInjectedLatency(b *testing.B) {
 		rule.Maximum = 1_000_000_000
 		rule.Faults = []faultinject.Fault{faultinject.LatencyFault(faultinject.PhaseBefore, time.Nanosecond)}
 		injector := benchmarkInjector(b, faultinject.Config{Rules: []faultinject.Rule{rule}})
+		runtime := runtimeWithInjector(b, injector)
 		metadata := faultinject.Metadata{Boundary: faultinject.BoundaryFunction}
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
-			_, _ = faultinject.Run(context.Background(), injector, metadata, benchmarkSuccess)
+			_, _ = faultinject.Run(context.Background(), runtime, metadata, benchmarkSuccess)
 		}
 	})
 }

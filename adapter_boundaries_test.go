@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestFilesystemValidationPassThroughAndFailurePhases(t *testing.T) {
@@ -27,7 +27,7 @@ func TestFilesystemValidationPassThroughAndFailurePhases(t *testing.T) {
 		t.Fatalf("disabled FS = %T, %v", disabled, err)
 	}
 	for _, phase := range []faultinject.Phase{faultinject.PhaseBefore, faultinject.PhaseDuring} {
-		wrapped, err := faultinject.WrapFS(base, scopedInjector(t, faultinject.BoundaryFilesystemOpen,
+		wrapped, err := faultinject.WrapFS(base, scopedRuntime(t, faultinject.BoundaryFilesystemOpen,
 			faultinject.ErrorFault(phase, errInjected)), 1, 2)
 		if err != nil {
 			t.Fatal(err)
@@ -41,7 +41,7 @@ func TestFilesystemValidationPassThroughAndFailurePhases(t *testing.T) {
 		err  error
 	}{{err: errInjected}, {}} {
 		wrapped, err := faultinject.WrapFS(fsFunc(func(string) (fs.File, error) { return result.file, result.err }),
-			injectorWithConfig(t, faultinject.Config{}), 1, 2)
+			runtimeWithConfig(t, faultinject.Config{}), 1, 2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -57,7 +57,7 @@ func TestHTTPNoMatchDuringAndOrganicPaths(t *testing.T) {
 
 	request, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://example.test", nil)
 	organic := roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, errInjected })
-	transport, err := faultinject.NewRoundTripper(organic, injectorWithConfig(t, faultinject.Config{}), 1, 2)
+	transport, err := faultinject.NewRoundTripper(organic, runtimeWithConfig(t, faultinject.Config{}), 1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestHTTPNoMatchDuringAndOrganicPaths(t *testing.T) {
 
 	transport, err = faultinject.NewRoundTripper(roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusNoContent}, nil
-	}), injectorWithConfig(t, faultinject.Config{}), 1, 2)
+	}), runtimeWithConfig(t, faultinject.Config{}), 1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestHTTPNoMatchDuringAndOrganicPaths(t *testing.T) {
 			t.Fatalf("during context error = %v", cloned.Context().Err())
 		}
 		return &http.Response{StatusCode: http.StatusOK, Body: body}, nil
-	}), scopedInjector(t, faultinject.BoundaryHTTP, faultinject.CancelFault(faultinject.PhaseDuring)), 1, 2)
+	}), scopedRuntime(t, faultinject.BoundaryHTTP, faultinject.CancelFault(faultinject.PhaseDuring)), 1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestHTTPNoMatchDuringAndOrganicPaths(t *testing.T) {
 	body = &trackingReadCloser{Reader: bytes.NewReader(nil)}
 	transport, err = faultinject.NewRoundTripper(roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Body: body}, errInjected
-	}), scopedInjector(t, faultinject.BoundaryHTTP, faultinject.LatencyFault(faultinject.PhaseBefore, time.Nanosecond)), 1, 2)
+	}), scopedRuntime(t, faultinject.BoundaryHTTP, faultinject.LatencyFault(faultinject.PhaseBefore, time.Nanosecond)), 1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestIOErrorPhasesAndWriterFailures(t *testing.T) {
 	t.Parallel()
 
 	for _, phase := range []faultinject.Phase{faultinject.PhaseDuring, faultinject.PhaseAfter} {
-		reader := faultinject.WrapReader(bytes.NewBufferString("x"), scopedInjector(t, faultinject.BoundaryReader,
+		reader := faultinject.WrapReader(bytes.NewBufferString("x"), scopedRuntime(t, faultinject.BoundaryReader,
 			faultinject.ErrorFault(phase, errInjected)), 1)
 		n, err := reader.Read(make([]byte, 1))
 		wantN := 0
@@ -118,27 +118,27 @@ func TestIOErrorPhasesAndWriterFailures(t *testing.T) {
 			t.Fatalf("reader phase %v = %d, %v", phase, n, err)
 		}
 	}
-	writer := faultinject.WrapWriter(io.Discard, scopedInjector(t, faultinject.BoundaryWriter,
+	writer := faultinject.WrapWriter(io.Discard, scopedRuntime(t, faultinject.BoundaryWriter,
 		faultinject.ErrorFault(faultinject.PhaseDuring, errInjected)), 1)
 	if n, err := writer.Write([]byte("x")); n != 0 || !errors.Is(err, errInjected) {
 		t.Fatalf("during writer = %d, %v", n, err)
 	}
 
 	duplicateFailure := &sequenceWriter{errors: []error{nil, errInjected}}
-	writer = faultinject.WrapWriter(duplicateFailure, scopedInjector(t, faultinject.BoundaryWriter,
+	writer = faultinject.WrapWriter(duplicateFailure, scopedRuntime(t, faultinject.BoundaryWriter,
 		faultinject.ByteFault(faultinject.KindDuplicate, faultinject.PhaseAfter, 1, 0)), 1)
 	if n, err := writer.Write([]byte("x")); n != 1 || !errors.Is(err, errInjected) {
 		t.Fatalf("duplicate writer = %d, %v", n, err)
 	}
 
 	organicFailure := &sequenceWriter{errors: []error{errInjected}}
-	writer = faultinject.WrapWriter(organicFailure, scopedInjector(t, faultinject.BoundaryWriter,
+	writer = faultinject.WrapWriter(organicFailure, scopedRuntime(t, faultinject.BoundaryWriter,
 		faultinject.ByteFault(faultinject.KindCorrupt, faultinject.PhaseDuring, 1, 1)), 1)
 	if n, err := writer.Write([]byte("x")); n != 1 || !errors.Is(err, errInjected) {
 		t.Fatalf("organic writer = %d, %v", n, err)
 	}
 
-	networkReader := faultinject.WrapReader(bytes.NewReader(nil), scopedInjector(t, faultinject.BoundaryReader,
+	networkReader := faultinject.WrapReader(bytes.NewReader(nil), scopedRuntime(t, faultinject.BoundaryReader,
 		faultinject.ByteFault(faultinject.KindTemporary, faultinject.PhaseBefore, 0, 0)), 1)
 	_, networkError := networkReader.Read(make([]byte, 1))
 	if networkError.Error() == "" || !errors.Is(networkError, faultinject.ErrTemporaryNetwork) {
@@ -158,7 +158,7 @@ func TestListenerAndDialerAllOwnershipPaths(t *testing.T) {
 		t.Fatalf("disabled listener = %T, %v", disabled, err)
 	}
 	for _, phase := range []faultinject.Phase{faultinject.PhaseBefore, faultinject.PhaseDuring} {
-		wrapped, err := faultinject.WrapListener(baseListener, scopedInjector(t, faultinject.BoundaryListen,
+		wrapped, err := faultinject.WrapListener(baseListener, scopedRuntime(t, faultinject.BoundaryListen,
 			faultinject.ErrorFault(phase, errInjected)), 1)
 		if err != nil {
 			t.Fatal(err)
@@ -168,7 +168,7 @@ func TestListenerAndDialerAllOwnershipPaths(t *testing.T) {
 		}
 	}
 	listenerError := &errorListener{err: errInjected}
-	wrapped, err := faultinject.WrapListener(listenerError, injectorWithConfig(t, faultinject.Config{}), 1)
+	wrapped, err := faultinject.WrapListener(listenerError, runtimeWithConfig(t, faultinject.Config{}), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestListenerAndDialerAllOwnershipPaths(t *testing.T) {
 	successListener := &stubListener{connection: &trackingConn{}}
 	latencyRule := ruleWithFault("listener-latency", faultinject.LatencyFault(faultinject.PhaseBefore, time.Nanosecond))
 	latencyRule.Scope = faultinject.BoundaryListen
-	wrapped, err = faultinject.WrapListener(successListener, injectorWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{latencyRule}}), 1)
+	wrapped, err = faultinject.WrapListener(successListener, runtimeWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{latencyRule}}), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,12 +191,12 @@ func TestListenerAndDialerAllOwnershipPaths(t *testing.T) {
 	if connection, err := disabledDial(context.Background(), "tcp", "x"); connection == nil || !errors.Is(err, errInjected) {
 		t.Fatalf("disabled dial = %v, %v", connection, err)
 	}
-	activeNoMatch := faultinject.WrapDialer(baseDial, injectorWithConfig(t, faultinject.Config{}), 1)
+	activeNoMatch := faultinject.WrapDialer(baseDial, runtimeWithConfig(t, faultinject.Config{}), 1)
 	if connection, err := activeNoMatch(context.Background(), "tcp", "x"); connection == nil || !errors.Is(err, errInjected) {
 		t.Fatalf("organic dial = %v, %v", connection, err)
 	}
 	for _, phase := range []faultinject.Phase{faultinject.PhaseBefore, faultinject.PhaseDuring} {
-		dial := faultinject.WrapDialer(baseDial, scopedInjector(t, faultinject.BoundaryDial,
+		dial := faultinject.WrapDialer(baseDial, scopedRuntime(t, faultinject.BoundaryDial,
 			faultinject.ErrorFault(phase, errInjected)), 1)
 		if connection, err := dial(context.Background(), "tcp", "x"); connection != nil || !errors.Is(err, errInjected) {
 			t.Fatalf("dial phase %v = %v, %v", phase, connection, err)
@@ -206,7 +206,7 @@ func TestListenerAndDialerAllOwnershipPaths(t *testing.T) {
 	successDialRule.Scope = faultinject.BoundaryDial
 	successDial := faultinject.WrapDialer(faultinject.DialContextFunc(func(context.Context, string, string) (net.Conn, error) {
 		return &trackingConn{}, nil
-	}), injectorWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{successDialRule}}), 1)
+	}), runtimeWithConfig(t, faultinject.Config{Rules: []faultinject.Rule{successDialRule}}), 1)
 	if connection, err := successDial(context.Background(), "tcp", "x"); connection == nil || err != nil {
 		t.Fatalf("successful dial = %v, %v", connection, err)
 	}
@@ -216,7 +216,7 @@ func TestConnDelegationAndHalfCloseFallbacks(t *testing.T) {
 	t.Parallel()
 
 	base := &trackingConn{}
-	conn := faultinject.WrapConn(base, scopedInjector(t, faultinject.BoundaryConn,
+	conn := faultinject.WrapConn(base, scopedRuntime(t, faultinject.BoundaryConn,
 		faultinject.ErrorFault(faultinject.PhaseBefore, errInjected)), 1, 2)
 	_, _ = conn.Read(make([]byte, 1))
 	if base.closed {
@@ -228,7 +228,7 @@ func TestConnDelegationAndHalfCloseFallbacks(t *testing.T) {
 	}
 
 	readBase := &trackingConn{}
-	conn = faultinject.WrapConn(readBase, scopedInjector(t, faultinject.BoundaryConn,
+	conn = faultinject.WrapConn(readBase, scopedRuntime(t, faultinject.BoundaryConn,
 		faultinject.ByteFault(faultinject.KindHalfClose, faultinject.PhaseBefore, 0, 0)), 1, 2)
 	_, _ = conn.Read(make([]byte, 1))
 	if !readBase.readClosed {
@@ -236,7 +236,7 @@ func TestConnDelegationAndHalfCloseFallbacks(t *testing.T) {
 	}
 
 	fallback := &basicConn{}
-	conn = faultinject.WrapConn(fallback, scopedInjector(t, faultinject.BoundaryConn,
+	conn = faultinject.WrapConn(fallback, scopedRuntime(t, faultinject.BoundaryConn,
 		faultinject.ByteFault(faultinject.KindHalfClose, faultinject.PhaseBefore, 0, 0)), 1, 2)
 	_, _ = conn.Write([]byte("x"))
 	if !fallback.closed {
@@ -255,7 +255,7 @@ func TestTimeAdaptersValidationPassThroughAndSuccess(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(disabledSleeper, baseSleeper) {
 		t.Fatalf("disabled sleeper = %T, %v", disabledSleeper, err)
 	}
-	wrappedSleeper, err := faultinject.WrapSleeper(baseSleeper, injectorWithConfig(t, faultinject.Config{}), 1)
+	wrappedSleeper, err := faultinject.WrapSleeper(baseSleeper, runtimeWithConfig(t, faultinject.Config{}), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestTimeAdaptersValidationPassThroughAndSuccess(t *testing.T) {
 		t.Fatalf("disabled timer factory = %T, %v", disabledFactory, err)
 	}
 	for _, phase := range []faultinject.Phase{faultinject.PhaseBefore, faultinject.PhaseDuring} {
-		wrapped, err := faultinject.WrapTimerFactory(baseFactory, scopedInjector(t, faultinject.BoundaryClock,
+		wrapped, err := faultinject.WrapTimerFactory(baseFactory, scopedRuntime(t, faultinject.BoundaryClock,
 			faultinject.ErrorFault(phase, errInjected)), 1)
 		if err != nil {
 			t.Fatal(err)
@@ -282,7 +282,7 @@ func TestTimeAdaptersValidationPassThroughAndSuccess(t *testing.T) {
 		}
 	}
 	organicFactory := &errorTimerFactory{err: errInjected}
-	wrappedFactory, err := faultinject.WrapTimerFactory(organicFactory, injectorWithConfig(t, faultinject.Config{}), 1)
+	wrappedFactory, err := faultinject.WrapTimerFactory(organicFactory, runtimeWithConfig(t, faultinject.Config{}), 1)
 	if err != nil {
 		t.Fatal(err)
 	}

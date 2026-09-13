@@ -11,6 +11,12 @@ closes newly acquired resources when it replaces success with failure.
 This is deterministic in-process behavior. It does not claim scheduler,
 packet, kernel, proxy, database, broker, or cluster fidelity.
 
+Every adapter accepts a `Runtime`. A nil or zero runtime delegates directly;
+an active runtime authorizes and audits every attempted evaluation before the
+adapter can apply a selected fault. Synchronous interfaces without a caller
+context use a background context for authorization, so their authorizer must
+not perform blocking work.
+
 ## Generic functions
 
 `Run` skips the operation for before-phase error/cancel/deadline faults. A

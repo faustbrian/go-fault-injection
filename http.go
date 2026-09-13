@@ -11,40 +11,40 @@ import (
 // failures; successful response bodies remain caller-owned.
 func NewRoundTripper(
 	base http.RoundTripper,
-	injector *Injector,
+	runtime *Runtime,
 	operation uint32,
 	bodyOperation uint32,
 ) (http.RoundTripper, error) {
 	if base == nil {
 		return nil, invalid("RoundTripper", "must be non-nil")
 	}
-	if injector == nil || !injector.enabled {
+	if !runtime.active() {
 		return base, nil
 	}
 	return &roundTripper{
-		base: base, injector: injector, operation: operation,
+		base: base, runtime: runtime, operation: operation,
 		bodyOperation: bodyOperation,
 	}, nil
 }
 
 type roundTripper struct {
 	base          http.RoundTripper
-	injector      *Injector
+	runtime       *Runtime
 	operation     uint32
 	bodyOperation uint32
 }
 
 func (transport *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	decision := transport.injector.Decide(Metadata{Boundary: BoundaryHTTP, Operation: transport.operation})
+	decision := transport.runtime.Decide(request.Context(), Metadata{Boundary: BoundaryHTTP, Operation: transport.operation})
 	if !decision.Injected() {
 		response, err := transport.base.RoundTrip(request)
 		return transport.wrapBody(response), err
 	}
-	if err := faultPhaseError(request.Context(), decision.faults, PhaseBefore, transport.injector.sleeper); err != nil {
+	if err := faultPhaseError(request.Context(), decision.faults, PhaseBefore, transport.runtime.sleeper()); err != nil {
 		closeRequestBody(request)
 		return nil, err
 	}
-	operationContext, cleanup, duringError := prepareDuring(request.Context(), transport.injector.sleeper, decision.faults)
+	operationContext, cleanup, duringError := prepareDuring(request.Context(), transport.runtime.sleeper(), decision.faults)
 	defer cleanup()
 	operationRequest := request
 	if operationContext != request.Context() {
@@ -55,7 +55,7 @@ func (transport *roundTripper) RoundTrip(request *http.Request) (*http.Response,
 		closeResponseBody(response)
 		return nil, duringError
 	}
-	if err := faultPhaseError(request.Context(), decision.faults, PhaseAfter, transport.injector.sleeper); err != nil {
+	if err := faultPhaseError(request.Context(), decision.faults, PhaseAfter, transport.runtime.sleeper()); err != nil {
 		closeResponseBody(response)
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (transport *roundTripper) wrapBody(response *http.Response) *http.Response 
 	}
 	response.Body = &injectedReadCloser{
 		Reader: &injectedReader{
-			reader: response.Body, injector: transport.injector,
+			reader: response.Body, runtime: transport.runtime,
 			operation: transport.bodyOperation, boundary: BoundaryHTTPBody,
 		},
 		Closer: response.Body,

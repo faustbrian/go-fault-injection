@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Require `Runtime` for `Run` and every built-in adapter so fault application
+  cannot bypass authorization, boundary allowlisting, expiry, evaluation
+  budget, auditing, or terminal emergency disable. This is a breaking public
+  API change planned for the unpublished `/v2` module path. After v2 is
+  published, callers must update their imports, construct a runtime, and
+  replace every application API argument that previously passed an injector.
+
 ### Changed
 
 - Upgrade the non-releasable resilience campaign to Retry v1.1.0 and its

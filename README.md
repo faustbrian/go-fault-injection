@@ -23,12 +23,19 @@ Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-li
 and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare focused policies and composition boundaries.
 
-The module is a stable v1 public library. It requires Go 1.27.0 or newer.
+The latest published module is the stable v1 public library. This branch is
+planned v2 source and is not published yet. Both require Go 1.27.0 or newer.
 
 ## Install
 
 ```sh
 go get github.com/faustbrian/go-fault-injection@v1
+```
+
+After v2 is published, adopters can migrate with:
+
+```sh
+go get github.com/faustbrian/go-fault-injection/v2@v2
 ```
 
 ## Quick start
@@ -50,19 +57,33 @@ if err != nil {
     return err
 }
 
-value, err := faultinject.Run(ctx, injector,
+runtime, err := faultinject.NewRuntime(faultinject.RuntimeConfig{
+    Injector:           injector,
+    Authorizer:         authorizeExperiment,
+    Allowlist:          []faultinject.Boundary{faultinject.BoundaryFunction},
+    ExpiresAt:          time.Now().Add(15 * time.Minute),
+    MaximumEvaluations: 10,
+    Auditor:            auditExperiment,
+})
+if err != nil {
+    return err
+}
+
+value, err := faultinject.Run(ctx, runtime,
     faultinject.Metadata{Boundary: faultinject.BoundaryFunction}, operation)
 ```
 
 ## Lifecycle and ownership
 
-An `Injector` and optional `Runtime` own only bounded in-memory rule, schedule,
+An `Injector` and `Runtime` own only bounded in-memory rule, schedule,
 counter, allowlist, and safety-gate state. They start no goroutines and own no
 external resources or shutdown operation. Both are safe for concurrent use.
 
-Construct the injector inside the test or experiment composition root and pass
-it explicitly to adapters. A nil or zero `Injector` delegates directly and
-cannot become active later.
+Construct both objects inside the test or experiment composition root and pass
+the runtime explicitly to application APIs and adapters. A nil or zero
+`Runtime` delegates directly and cannot become active later. Application APIs
+do not accept an `Injector`, so authorization, allowlisting, expiry, budget,
+auditing, and emergency disable cannot be bypassed by adapter wiring.
 
 Constructors copy slices and fault value data. Interface collaborators are
 borrowed: keep `Clock`, `Sleeper`, and `Observer` valid for the `Injector`
@@ -111,8 +132,8 @@ level failures.
 
 ## Controlled runtime experiments
 
-Tests should use `Injector` directly. A runtime integration must additionally
-use `Runtime`, which requires an explicit injector, authorizer, exact boundary
+Every application path uses `Runtime`, including tests. It requires an explicit
+injector, authorizer, exact boundary
 allowlist, expiry, maximum evaluation budget, audit sink, and terminal emergency
 disable. It fails closed on authorization or clock failure and never consults
 the environment. See [security](docs/safety.md).
@@ -168,6 +189,7 @@ supply-chain, and clean-consumer checks.
 - [Documentation index](docs/README.md)
 - [API and adapter contracts](docs/api.md)
 - [Safety and controlled runtime experiments](docs/safety.md)
+- [Threat model](docs/threat-model.md)
 - [Performance methodology](docs/performance.md)
 - [FAQ](docs/faq.md)
 - [Support](SUPPORT.md)

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 )
 
 func TestListenerClosesConnectionsRejectedAfterAccept(t *testing.T) {
@@ -16,7 +16,7 @@ func TestListenerClosesConnectionsRejectedAfterAccept(t *testing.T) {
 
 	connection := &trackingConn{}
 	listener := &stubListener{connection: connection}
-	wrapped, err := faultinject.WrapListener(listener, scopedInjector(t, faultinject.BoundaryListen,
+	wrapped, err := faultinject.WrapListener(listener, scopedRuntime(t, faultinject.BoundaryListen,
 		faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 1)
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +37,7 @@ func TestFilesystemPreservesOpenReadAndCloseOwnership(t *testing.T) {
 	t.Parallel()
 
 	base := &trackingFS{file: &trackingFile{data: []byte("data")}}
-	injector := scopedInjector(t, faultinject.BoundaryFilesystemRead,
+	injector := scopedRuntime(t, faultinject.BoundaryFilesystemRead,
 		faultinject.ByteFault(faultinject.KindShortRead, faultinject.PhaseDuring, 2, 0))
 	wrapped, err := faultinject.WrapFS(base, injector, 1, 2)
 	if err != nil {
@@ -64,7 +64,7 @@ func TestFilesystemClosesFileRejectedAfterOpen(t *testing.T) {
 	t.Parallel()
 
 	base := &trackingFS{file: &trackingFile{data: []byte("data")}}
-	wrapped, err := faultinject.WrapFS(base, scopedInjector(t, faultinject.BoundaryFilesystemOpen,
+	wrapped, err := faultinject.WrapFS(base, scopedRuntime(t, faultinject.BoundaryFilesystemOpen,
 		faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 1, 2)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestSleeperAndTimerFactoryUseExplicitClockBoundary(t *testing.T) {
 	t.Parallel()
 
 	baseSleeper := &recordingSleeper{}
-	wrappedSleeper, err := faultinject.WrapSleeper(baseSleeper, scopedInjector(t, faultinject.BoundaryClock,
+	wrappedSleeper, err := faultinject.WrapSleeper(baseSleeper, scopedRuntime(t, faultinject.BoundaryClock,
 		faultinject.ErrorFault(faultinject.PhaseBefore, errInjected)), 1)
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestSleeperAndTimerFactoryUseExplicitClockBoundary(t *testing.T) {
 	}
 
 	baseFactory := &stubTimerFactory{timer: &stubTimer{channel: make(chan time.Time)}}
-	wrappedFactory, err := faultinject.WrapTimerFactory(baseFactory, scopedInjector(t, faultinject.BoundaryClock,
+	wrappedFactory, err := faultinject.WrapTimerFactory(baseFactory, scopedRuntime(t, faultinject.BoundaryClock,
 		faultinject.ErrorFault(faultinject.PhaseAfter, errInjected)), 2)
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestTimerFactoryDuringCancellationDelegatesWithEndedContextAndCleansUp(t *t
 		}
 		return baseTimer, nil
 	})
-	wrapped, err := faultinject.WrapTimerFactory(base, scopedInjector(t, faultinject.BoundaryClock,
+	wrapped, err := faultinject.WrapTimerFactory(base, scopedRuntime(t, faultinject.BoundaryClock,
 		faultinject.CancelFault(faultinject.PhaseDuring)), 1)
 	if err != nil {
 		t.Fatal(err)

@@ -35,19 +35,19 @@ func (e *NetworkError) Unwrap() error   { return e.cause }
 func (e *NetworkError) Timeout() bool   { return false }
 func (e *NetworkError) Temporary() bool { return e.temporary }
 
-// WrapReader wraps reader only when injector is active. Byte faults are
+// WrapReader wraps reader only when runtime is active. Byte faults are
 // bounded by their configured limit, and duplicated data is retained in a
 // bounded private buffer.
-func WrapReader(reader io.Reader, injector *Injector, operation uint32) io.Reader {
-	if injector == nil || !injector.enabled {
+func WrapReader(reader io.Reader, runtime *Runtime, operation uint32) io.Reader {
+	if !runtime.active() {
 		return reader
 	}
-	return &injectedReader{reader: reader, injector: injector, operation: operation, boundary: BoundaryReader}
+	return &injectedReader{reader: reader, runtime: runtime, operation: operation, boundary: BoundaryReader}
 }
 
 type injectedReader struct {
 	reader      io.Reader
-	injector    *Injector
+	runtime     *Runtime
 	operation   uint32
 	boundary    Boundary
 	attempt     atomic.Uint64
@@ -66,12 +66,12 @@ func (reader *injectedReader) Read(buffer []byte) (int, error) {
 	}
 	reader.duplicateMu.Unlock()
 
-	decision := reader.injector.Decide(Metadata{Boundary: reader.boundary, Operation: reader.operation, Attempt: attempt})
-	if err := ioPhaseError(decision.faults, PhaseBefore, reader.injector.sleeper); err != nil {
+	decision := reader.runtime.Decide(context.Background(), Metadata{Boundary: reader.boundary, Operation: reader.operation, Attempt: attempt})
+	if err := ioPhaseError(decision.faults, PhaseBefore, reader.runtime.sleeper()); err != nil {
 		return 0, err
 	}
 	readBuffer := boundedBuffer(buffer, decision.faults, true)
-	if err := ioPhaseError(decision.faults, PhaseDuring, reader.injector.sleeper); err != nil {
+	if err := ioPhaseError(decision.faults, PhaseDuring, reader.runtime.sleeper()); err != nil {
 		return 0, err
 	}
 	n, organicError := reader.reader.Read(readBuffer)
@@ -79,7 +79,7 @@ func (reader *injectedReader) Read(buffer []byte) (int, error) {
 	if injectedError != nil {
 		return n, injectedError
 	}
-	if err := ioPhaseError(decision.faults, PhaseAfter, reader.injector.sleeper); err != nil {
+	if err := ioPhaseError(decision.faults, PhaseAfter, reader.runtime.sleeper()); err != nil {
 		return n, err
 	}
 	return n, organicError
@@ -116,19 +116,19 @@ func (reader *injectedReader) transform(data []byte, faults []Fault) (int, error
 	return n, nil
 }
 
-// WrapWriter wraps writer only when injector is active. Transforming faults
+// WrapWriter wraps writer only when runtime is active. Transforming faults
 // operate on at most their declared limit and report short writes for larger
 // caller buffers.
-func WrapWriter(writer io.Writer, injector *Injector, operation uint32) io.Writer {
-	if injector == nil || !injector.enabled {
+func WrapWriter(writer io.Writer, runtime *Runtime, operation uint32) io.Writer {
+	if !runtime.active() {
 		return writer
 	}
-	return &injectedWriter{writer: writer, injector: injector, operation: operation, boundary: BoundaryWriter}
+	return &injectedWriter{writer: writer, runtime: runtime, operation: operation, boundary: BoundaryWriter}
 }
 
 type injectedWriter struct {
 	writer    io.Writer
-	injector  *Injector
+	runtime   *Runtime
 	operation uint32
 	boundary  Boundary
 	attempt   atomic.Uint64
@@ -136,8 +136,8 @@ type injectedWriter struct {
 
 func (writer *injectedWriter) Write(buffer []byte) (int, error) {
 	attempt := writer.attempt.Add(1)
-	decision := writer.injector.Decide(Metadata{Boundary: writer.boundary, Operation: writer.operation, Attempt: attempt})
-	if err := ioPhaseError(decision.faults, PhaseBefore, writer.injector.sleeper); err != nil {
+	decision := writer.runtime.Decide(context.Background(), Metadata{Boundary: writer.boundary, Operation: writer.operation, Attempt: attempt})
+	if err := ioPhaseError(decision.faults, PhaseBefore, writer.runtime.sleeper()); err != nil {
 		return 0, err
 	}
 	for _, fault := range decision.faults {
@@ -146,7 +146,7 @@ func (writer *injectedWriter) Write(buffer []byte) (int, error) {
 		}
 	}
 	writeBuffer, transformed := transformWriteBuffer(buffer, decision.faults)
-	if err := ioPhaseError(decision.faults, PhaseDuring, writer.injector.sleeper); err != nil {
+	if err := ioPhaseError(decision.faults, PhaseDuring, writer.runtime.sleeper()); err != nil {
 		return 0, err
 	}
 	n, organicError := writer.writer.Write(writeBuffer)
@@ -164,7 +164,7 @@ func (writer *injectedWriter) Write(buffer []byte) (int, error) {
 			}
 		}
 	}
-	if err := ioPhaseError(decision.faults, PhaseAfter, writer.injector.sleeper); err != nil {
+	if err := ioPhaseError(decision.faults, PhaseAfter, writer.runtime.sleeper()); err != nil {
 		return n, err
 	}
 	if organicError != nil {

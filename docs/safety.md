@@ -2,9 +2,9 @@
 
 ## Test construction
 
-Prefer constructing `Injector` inside a test and passing it directly to the
-owned adapter. The zero value and nil pointer are disabled and allocation-free
-on `Decide`. Build tags are not the sole safety boundary.
+Construct an `Injector` and a `Runtime` inside a test and pass the runtime to
+the owned adapter. Application APIs never accept an injector directly. The
+zero and nil runtime are disabled. Build tags are not the sole safety boundary.
 
 ## Runtime experiments
 
@@ -30,6 +30,11 @@ a scheduled no-match still consumes one budget unit. Applications needing a
 rate cap must enforce it before authorization in addition to this finite total
 budget.
 
+Context-aware application APIs pass the caller context to authorization.
+Synchronous adapter methods that cannot accept a context authorize with a
+background context; authorizers are therefore required to return promptly and
+must not perform network or other blocking I/O.
+
 ## Safe data
 
 Rule IDs, scopes, and panic strings accept only bounded safe identifiers.
@@ -54,3 +59,6 @@ registries, or per-call timers retained by the engine.
 - bound caller contexts as well as configured latency;
 - verify cleanup for every after-acquisition fault; and
 - exercise emergency disable under concurrent load.
+
+See the versioned [threat model](threat-model.md) for trust boundaries,
+controls, evidence, and accepted residual risks.

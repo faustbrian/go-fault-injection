@@ -5,14 +5,14 @@
   "modules": [
     {
       "directory": ".",
-      "module_path": "github.com/faustbrian/go-fault-injection",
+      "module_path": "github.com/faustbrian/go-fault-injection/v2",
       "go_version": "1.27.0",
       "packages": [
         {
           "module_directory": ".",
           "directory": ".",
           "name": "faultinject",
-          "import_path": "github.com/faustbrian/go-fault-injection",
+          "import_path": "github.com/faustbrian/go-fault-injection/v2",
           "kind": "public",
           "production": true,
           "executable": true,
@@ -22,14 +22,14 @@
         }
       ],
       "purpose": "`fault-injection` is a deterministic, concurrency-safe, bounded toolkit for exercising failure paths in Go tests and explicitly wired controlled experiments. Its zero value is disabled, configuration is copied and validated before use, and it has no environment-variable activation path, background worker, unbounded history, or remote control surface.",
-      "lifecycle": "stable",
+      "lifecycle": "planned",
       "kind": "public library",
-      "releasable": true,
+      "releasable": false,
       "family": "resilience",
       "family_label": "Resilience",
       "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
       "family_order": 5,
-      "version": "1.0.0",
+      "version": "2.0.0",
       "tag_prefix": "v",
       "owned_dependencies": [],
       "reverse_owned_dependencies": [
@@ -74,13 +74,13 @@
         ],
         "public_package_identifier": "faultinject",
         "primary_entry_packages": [
-          "github.com/faustbrian/go-fault-injection"
+          "github.com/faustbrian/go-fault-injection/v2"
         ],
         "package_selection": {
-          "github.com/faustbrian/go-fault-injection": "Use for deterministic failure campaigns at explicit function, HTTP, I/O, network, filesystem, sleeper, and timer boundaries."
+          "github.com/faustbrian/go-fault-injection/v2": "Use for deterministic failure campaigns at explicit function, HTTP, I/O, network, filesystem, sleeper, and timer boundaries."
         },
-        "lifecycle_status": "active",
-        "maturity": "stable",
+        "lifecycle_status": "planned",
+        "maturity": "preview",
         "construction_styles": [
           "new-config",
           "plain-function"
@@ -152,7 +152,7 @@
       "version": "unreleased",
       "tag_prefix": "benchmarks/comparison/v",
       "owned_dependencies": [
-        "github.com/faustbrian/go-fault-injection"
+        "github.com/faustbrian/go-fault-injection/v2"
       ],
       "reverse_owned_dependencies": [],
       "external_runtime_dependencies": [
@@ -200,7 +200,7 @@
       "tag_prefix": "integration/resilience/v",
       "owned_dependencies": [
         "github.com/faustbrian/go-circuit-breaker",
-        "github.com/faustbrian/go-fault-injection",
+        "github.com/faustbrian/go-fault-injection/v2",
         "github.com/faustbrian/go-resilience",
         "github.com/faustbrian/go-retry"
       ],
