@@ -22,9 +22,9 @@
         }
       ],
       "purpose": "`fault-injection` is a deterministic, concurrency-safe, bounded toolkit for exercising failure paths in Go tests and explicitly wired controlled experiments. Its zero value is disabled, configuration is copied and validated before use, and it has no environment-variable activation path, background worker, unbounded history, or remote control surface.",
-      "lifecycle": "planned",
+      "lifecycle": "stable",
       "kind": "public library",
-      "releasable": false,
+      "releasable": true,
       "family": "resilience",
       "family_label": "Resilience",
       "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
@@ -76,8 +76,8 @@
         "package_selection": {
           "github.com/faustbrian/go-fault-injection/v2": "Use for deterministic failure campaigns at explicit function, HTTP, I/O, network, filesystem, sleeper, and timer boundaries."
         },
-        "lifecycle_status": "planned",
-        "maturity": "preview",
+        "lifecycle_status": "active",
+        "maturity": "stable",
         "construction_styles": [
           "new-config",
           "plain-function"
@@ -127,9 +127,9 @@
         },
         "known_good_compatibility_sets": [],
         "delivery": {
-          "implementation": "not-started",
-          "hardening": "not-started",
-          "release": "not-started"
+          "implementation": "in-progress",
+          "hardening": "in-progress",
+          "release": "in-progress"
         }
       }
     },
