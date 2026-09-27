@@ -7,10 +7,10 @@ of a new stable major supersedes the previous major; breaking security fixes
 are not backported. Older releases and the `main` branch are unsupported;
 upgrade before reporting unless the issue is a regression under development.
 
-The published series is currently v1. The Runtime-only application APIs are
-pending v2 source, not a fix in the published v1 artifact. When v2.0.0 is
-published, v1 becomes unsupported: migrate imports to `/v2` and pass an explicit
-Runtime to every application API and built-in adapter.
+V2.0.0 supersedes v1 at publication. The Runtime-only application APIs are
+not a fix in the v1 artifact: migrate imports to `/v2` and pass an explicit
+Runtime to every application API and built-in adapter. Before a v2 tag is
+published, source on `main` does not change the supported published series.
 
 | Version | Supported |
 | --- | --- |
@@ -29,7 +29,7 @@ fixture, event, log, or initial contact request.
 
 ## Activation boundary
 
-This boundary describes the pending v2 source. Published v1 application APIs
+This boundary describes the v2 API. V1 application APIs
 accept an Injector directly and do not enforce Runtime admission themselves.
 
 The zero runtime is disabled. The package does not read environment variables,

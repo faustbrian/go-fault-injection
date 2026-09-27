@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require Go 1.27.0 for the v2 module and its internal harnesses. The
+  published v1.0.0 artifact retains its declared Go 1.26.6 minimum.
+
 - Upgrade the non-releasable resilience campaign to Retry v1.1.0 and its
   strict policy, execution, and known-outcome contract for deterministic
   in-process fault injection.

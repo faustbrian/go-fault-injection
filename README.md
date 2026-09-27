@@ -23,24 +23,25 @@ Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-li
 and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare focused policies and composition boundaries.
 
-The published v1.0.0 artifact declares Go 1.26.6. Current source is planned v2,
-requires Go 1.27.0 or newer, and is not published yet.
+The v1.0.0 artifact declares Go 1.26.6. The v2 API requires Go 1.27.0
+or newer. Check [published releases](https://github.com/faustbrian/go-fault-injection/releases)
+for available versions; source on `main` is not a published artifact.
 
 ## Install
-
-```sh
-go get github.com/faustbrian/go-fault-injection@v1
-```
-
-After v2 is published, adopters can migrate with:
 
 ```sh
 go get github.com/faustbrian/go-fault-injection/v2@v2
 ```
 
+The v2 command requires a published v2 tag. To install the older v1 API:
+
+```sh
+go get github.com/faustbrian/go-fault-injection@v1
+```
+
 ## Quick start
 
-The example below describes the pending v2 source, not the published v1 API.
+The example below uses the v2 API, not the v1 API.
 
 ```go
 injector, err := faultinject.New(faultinject.Config{Rules: []faultinject.Rule{{
@@ -111,12 +112,21 @@ satisfy the concurrency contract documented by their interface.
 
 See [API](docs/api.md) and [deterministic recipes](docs/operations.md).
 
-## Release sequence
+## Migration and release sequence
+
+V2 changes the import path to `github.com/faustbrian/go-fault-injection/v2`
+and replaces `*Injector` arguments with `*Runtime` in `Run` and every built-in
+adapter. Construct a runtime with explicit authorization, boundary allowlist,
+expiry, finite evaluation budget, and audit collaborators; pass it to each
+application boundary. The root major-version tag is `v2.0.0` on `main`, not
+a version branch or a nested-module tag.
 
 The non-releasable resilience and comparison modules temporarily consume
 published v1.0.0 so ordinary module-local CI can resolve their dependencies
 before root v2 publication. They do not currently prove the pending v2 API.
 Root v2 retains its own runtime security regressions and Go 1.27 minimum.
+Publication is maintainer-operated: CI validates the source and release
+inputs but does not create tags, release assets, or GitHub releases.
 
 Publish root v2 from `main` using its root major-version tag, then migrate both
 internal modules to the published `/v2` artifact. The rollout is unfinished
