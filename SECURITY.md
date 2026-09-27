@@ -7,10 +7,10 @@ of a new stable major supersedes the previous major; breaking security fixes
 are not backported. Older releases and the `main` branch are unsupported;
 upgrade before reporting unless the issue is a regression under development.
 
-V2.0.0 supersedes v1 at publication. The Runtime-only application APIs are
+V2.0.0 supersedes v1. The Runtime-only application APIs are
 not a fix in the v1 artifact: migrate imports to `/v2` and pass an explicit
-Runtime to every application API and built-in adapter. Before a v2 tag is
-published, source on `main` does not change the supported published series.
+Runtime to every application API and built-in adapter. Source changes on
+`main` do not change the supported published series before publication.
 
 | Version | Supported |
 | --- | --- |

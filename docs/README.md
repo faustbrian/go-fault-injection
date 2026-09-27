@@ -7,8 +7,8 @@
 - [Adapters](adapters.md)
 - [Extension guide](extension.md)
 - [Executable examples](../example_test.go)
-- [Published v1 package API](https://pkg.go.dev/github.com/faustbrian/go-fault-injection)
-- The current source targets the planned, unpublished `/v2` module path.
+- [Published v2 package API](https://pkg.go.dev/github.com/faustbrian/go-fault-injection/v2)
+- V2.0.0 uses Runtime-only application APIs and requires Go 1.27.0.
 
 ## Concepts and design
 

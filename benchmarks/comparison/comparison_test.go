@@ -3,10 +3,12 @@ package comparison_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/failsafe-go/failsafe-go"
-	faultinject "github.com/faustbrian/go-fault-injection"
+	faultinject "github.com/faustbrian/go-fault-injection/v2"
 	"github.com/slok/goresilience/chaos"
 )
 
@@ -88,17 +90,46 @@ func newFaultInjectionFailure(t testing.TB) func() error {
 	if err != nil {
 		t.Fatal(err)
 	}
+	clock := campaignClock{now: time.Unix(1_700_000_000, 0)}
+	var authorizations, audits atomic.Uint64
+	runtime, err := faultinject.NewRuntime(faultinject.RuntimeConfig{
+		Injector: injector,
+		Authorizer: faultinject.AuthorizerFunc(func(context.Context, faultinject.Metadata) bool {
+			authorizations.Add(1)
+			return true
+		}),
+		Allowlist: []faultinject.Boundary{faultinject.BoundaryFunction},
+		Clock:     clock, ExpiresAt: clock.Now().Add(time.Minute),
+		MaximumEvaluations: 1_000_000_000,
+		Auditor: faultinject.AuditorFunc(func(event faultinject.AuditEvent) {
+			audits.Add(1)
+			if event.Outcome != faultinject.AuditEvaluated || !event.Injected || event.Metadata.Boundary != faultinject.BoundaryFunction {
+				t.Errorf("comparison audit = %+v", event)
+			}
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	return func() error {
-		_, err := faultinject.Run(context.Background(), injector,
+		before := runtime.Snapshot().Evaluations
+		_, err := faultinject.Run(context.Background(), runtime,
 			faultinject.Metadata{Boundary: faultinject.BoundaryFunction},
 			func(context.Context) (struct{}, error) {
 				t.Fatal("injected before-fault called the operation")
 				return struct{}{}, nil
 			},
 		)
+		if !errors.Is(err, errComparison) || runtime.Snapshot().Evaluations != before+1 || authorizations.Load() != before+1 || audits.Load() != before+1 {
+			t.Fatalf("comparison runtime: err=%v evaluations=%d authorizations=%d audits=%d", err, runtime.Snapshot().Evaluations, authorizations.Load(), audits.Load())
+		}
 		return err
 	}
 }
+
+type campaignClock struct{ now time.Time }
+
+func (clock campaignClock) Now() time.Time { return clock.now }
 
 func newGoresilienceFailure(t testing.TB) func() error {
 	t.Helper()

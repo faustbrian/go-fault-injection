@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-fault-injection.svg)](https://pkg.go.dev/github.com/faustbrian/go-fault-injection)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-fault-injection/v2.svg)](https://pkg.go.dev/github.com/faustbrian/go-fault-injection/v2)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-fault-injection?sort=semver)](https://github.com/faustbrian/go-fault-injection/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -33,7 +33,7 @@ for available versions; source on `main` is not a published artifact.
 go get github.com/faustbrian/go-fault-injection/v2@v2
 ```
 
-The v2 command requires a published v2 tag. To install the older v1 API:
+V2.0.0 is published. To install the older, unsupported v1 API:
 
 ```sh
 go get github.com/faustbrian/go-fault-injection@v1
@@ -121,18 +121,17 @@ expiry, finite evaluation budget, and audit collaborators; pass it to each
 application boundary. The root major-version tag is `v2.0.0` on `main`, not
 a version branch or a nested-module tag.
 
-The non-releasable resilience and comparison modules temporarily consume
-published v1.0.0 so ordinary module-local CI can resolve their dependencies
-before root v2 publication. They do not currently prove the pending v2 API.
-Root v2 retains its own runtime security regressions and Go 1.27 minimum.
+The non-releasable resilience and comparison modules consume published
+v2.0.0 through explicit runtime admission. Root v2 retains its own runtime
+security regressions and Go 1.27 minimum.
 Publication is maintainer-operated: CI validates the source and release
 inputs but does not create tags, release assets, or GitHub releases.
 
-Publish root v2 from `main` using its root major-version tag, then migrate both
-internal modules to the published `/v2` artifact. The rollout is unfinished
-until both published-v2 consumers and ordinary main CI pass. No workspace
-substitution, permanent replacement, or reduced CI selection supplies that
-release evidence. Support changes at publication as described in
+Release root versions from `main` using root major-version tags before updating
+internal modules to the published artifact. Verify each consumer with
+`GOWORK=off` and ordinary main CI; no workspace substitution, permanent
+replacement, or reduced CI selection supplies that release evidence.
+Support changes at publication as described in
 [SECURITY.md](SECURITY.md).
 
 ## Faults and adapters
