@@ -193,6 +193,13 @@ func validIdentity(value string) bool {
 // Decide atomically orders one evaluation. Lock acquisition defines ordering;
 // identical configurations and acquisition order produce identical decisions.
 func (i *Injector) Decide(metadata Metadata) Decision {
+	return i.decide(metadata, nil)
+}
+
+// decide runs caller predicates before coordinating the final admission and
+// selection. The optional admission function is internal and invokes no caller
+// code; observers remain outside the selection lock.
+func (i *Injector) decide(metadata Metadata, admit func() bool) Decision {
 	if i == nil || !i.enabled {
 		return Decision{}
 	}
@@ -205,6 +212,10 @@ func (i *Injector) Decide(metadata Metadata) Decision {
 	}
 
 	i.mu.Lock()
+	if admit != nil && !admit() {
+		i.mu.Unlock()
+		return Decision{}
+	}
 	i.evaluations = saturatingIncrement(i.evaluations)
 	sequence := i.evaluations
 	generation := i.generation

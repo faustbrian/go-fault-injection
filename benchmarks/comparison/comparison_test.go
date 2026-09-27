@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/failsafe-go/failsafe-go"
-	faultinject "github.com/faustbrian/go-fault-injection/v2"
+	faultinject "github.com/faustbrian/go-fault-injection"
 	"github.com/slok/goresilience/chaos"
 )
 
@@ -89,19 +88,8 @@ func newFaultInjectionFailure(t testing.TB) func() error {
 	if err != nil {
 		t.Fatal(err)
 	}
-	runtime, err := faultinject.NewRuntime(faultinject.RuntimeConfig{
-		Injector:           injector,
-		Authorizer:         faultinject.AuthorizerFunc(func(context.Context, faultinject.Metadata) bool { return true }),
-		Allowlist:          []faultinject.Boundary{faultinject.BoundaryFunction},
-		ExpiresAt:          time.Now().Add(time.Hour),
-		MaximumEvaluations: 1_000_000_000,
-		Auditor:            faultinject.AuditorFunc(func(faultinject.AuditEvent) {}),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
 	return func() error {
-		_, err := faultinject.Run(context.Background(), runtime,
+		_, err := faultinject.Run(context.Background(), injector,
 			faultinject.Metadata{Boundary: faultinject.BoundaryFunction},
 			func(context.Context) (struct{}, error) {
 				t.Fatal("injected before-fault called the operation")

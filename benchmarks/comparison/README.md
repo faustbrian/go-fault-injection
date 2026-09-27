@@ -5,6 +5,11 @@ fault-injection module. All candidates return a caller-visible error. The
 fault-injection and goresilience cases prevent the wrapped operation from
 running; the direct double is the minimum equivalent test outcome.
 
+Before root v2 publication, this harness consumes published v1.0.0 rather than
+the pending root `/v2` source. It moves to the published v2 artifact after
+publication. Measurements must identify the selected fault-injection version;
+v1 measurements are not evidence of v2 behavior or performance.
+
 Failsafe-Go v0.9.6 has policy composition but no failure-injection policy. Its
 case therefore measures a caller-supplied failing function through the
 Failsafe-Go executor. It is included because Failsafe-Go is an authoritative

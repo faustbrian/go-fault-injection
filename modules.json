@@ -32,10 +32,7 @@
       "version": "2.0.0",
       "tag_prefix": "v",
       "owned_dependencies": [],
-      "reverse_owned_dependencies": [
-        "github.com/faustbrian/go-fault-injection/benchmarks/comparison",
-        "github.com/faustbrian/go-fault-injection/integration/resilience"
-      ],
+      "reverse_owned_dependencies": [],
       "external_runtime_dependencies": [
         "go.uber.org/goleak"
       ],
@@ -141,7 +138,7 @@
       "module_path": "github.com/faustbrian/go-fault-injection/benchmarks/comparison",
       "go_version": "1.27.0",
       "packages": [],
-      "purpose": "This non-releasable module isolates comparison dependencies from the core fault-injection module. All candidates return a caller-visible error. The fault-injection and goresilience cases prevent the wrapped operation from running; the direct double is the minimum equivalent test outcome.",
+      "purpose": "This non-releasable module isolates comparison dependencies from the core fault-injection module. Before root v2 publication it consumes published v1.0.0; it must migrate to published v2 before the rollout is complete. Its current results do not prove root v2 behavior. All candidates return a caller-visible error. The fault-injection and goresilience cases prevent the wrapped operation from running; the direct double is the minimum equivalent test outcome.",
       "lifecycle": "internal",
       "kind": "benchmark harness",
       "releasable": false,
@@ -152,7 +149,7 @@
       "version": "unreleased",
       "tag_prefix": "benchmarks/comparison/v",
       "owned_dependencies": [
-        "github.com/faustbrian/go-fault-injection/v2"
+        "github.com/faustbrian/go-fault-injection"
       ],
       "reverse_owned_dependencies": [],
       "external_runtime_dependencies": [
@@ -188,7 +185,7 @@
       "module_path": "github.com/faustbrian/go-fault-injection/integration/resilience",
       "go_version": "1.27.0",
       "packages": [],
-      "purpose": "This non-releasable module proves that `fault-injection` can drive deterministic campaigns through the public strict retry and circuit-breaker contracts. Its in-process retry operations report known outcomes. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
+      "purpose": "This non-releasable module proves that published fault-injection can drive deterministic campaigns through the public strict retry and circuit-breaker contracts. Before root v2 publication it consumes published v1.0.0; it must migrate to published v2 before the rollout is complete. Its current results do not prove root v2 behavior. Its in-process retry operations report known outcomes. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,
@@ -200,7 +197,7 @@
       "tag_prefix": "integration/resilience/v",
       "owned_dependencies": [
         "github.com/faustbrian/go-circuit-breaker",
-        "github.com/faustbrian/go-fault-injection/v2",
+        "github.com/faustbrian/go-fault-injection",
         "github.com/faustbrian/go-resilience",
         "github.com/faustbrian/go-retry"
       ],

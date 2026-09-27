@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -23,7 +24,7 @@ func TestInternalByteTransformPhaseAndEmptyGuards(t *testing.T) {
 		{Kind: KindInterrupt, phase: PhaseAfter, limit: 1},
 	} {
 		copyData := append([]byte(nil), data...)
-		n, err := reader.transform(copyData, []Fault{fault})
+		n, err := reader.transform(copyData, Decision{faults: []Fault{fault}})
 		if n != 2 || err != nil || !bytes.Equal(copyData, data) || len(reader.duplicate) != 0 {
 			t.Fatalf("wrong-phase transform = %q, %d, %v, duplicate=%q", copyData, n, err, reader.duplicate)
 		}
@@ -34,7 +35,7 @@ func TestInternalByteTransformPhaseAndEmptyGuards(t *testing.T) {
 		{Kind: KindDuplicate, phase: PhaseAfter, limit: 1},
 		{Kind: KindInterrupt, phase: PhaseDuring, limit: 1},
 	} {
-		if n, err := reader.transform([]byte{}, []Fault{fault}); n != 0 || err != nil || len(reader.duplicate) != 0 {
+		if n, err := reader.transform([]byte{}, Decision{faults: []Fault{fault}}); n != 0 || err != nil || len(reader.duplicate) != 0 {
 			t.Fatalf("empty transform = %d, %v, duplicate=%q", n, err, reader.duplicate)
 		}
 	}
@@ -147,3 +148,100 @@ func mustInternalRuntime(t *testing.T, boundary Boundary, fault Fault) *Runtime 
 }
 
 var _ io.Writer = (*shortNilWriter)(nil)
+
+func TestInternalZeroRuntimeDisableIsTerminal(t *testing.T) {
+	gate := &Runtime{}
+	gate.Disable()
+	gate.Disable()
+	if snapshot := gate.Snapshot(); !snapshot.Disabled || snapshot.Evaluations != 0 || snapshot.Remaining != 0 {
+		t.Fatalf("disabled zero runtime = %+v", snapshot)
+	}
+	if gate.Decide(context.Background(), Metadata{Boundary: BoundaryReader}).Injected() {
+		t.Fatal("zero runtime selected a fault")
+	}
+}
+
+func TestInternalExhaustedRuntimeDoesNotEvaluatePredicates(t *testing.T) {
+	gate := mustInternalRuntime(t, BoundaryReader, Fault{Kind: KindDrop, phase: PhaseAfter})
+	calls := 0
+	gate.injector.rules[0].rule.Predicate = func(Metadata) bool { calls++; return true }
+	var outcomes []AuditOutcome
+	gate.auditor = AuditorFunc(func(event AuditEvent) { outcomes = append(outcomes, event.Outcome) })
+	metadata := Metadata{Boundary: BoundaryReader}
+	if !gate.Decide(context.Background(), metadata).Injected() {
+		t.Fatal("authorized first evaluation did not select a fault")
+	}
+	for range 3 {
+		if gate.Decide(context.Background(), metadata).Injected() {
+			t.Fatal("exhausted runtime selected a fault")
+		}
+	}
+	if calls != 1 || gate.Snapshot().Evaluations != 1 {
+		t.Fatalf("exhausted runtime evaluated caller code: predicates=%d, snapshot=%+v", calls, gate.Snapshot())
+	}
+	if len(outcomes) != 4 || outcomes[0] != AuditEvaluated {
+		t.Fatalf("evaluation audits = %v", outcomes)
+	}
+	for _, outcome := range outcomes[1:] {
+		if outcome != AuditBudgetExhausted {
+			t.Fatalf("exhausted audit = %s", outcome)
+		}
+	}
+}
+
+func TestInternalReaderReplayFinalAdmissionRejects(t *testing.T) {
+	for _, outcome := range []AuditOutcome{AuditDisabled, AuditBudgetExhausted} {
+		t.Run(string(outcome), func(t *testing.T) {
+			gate := mustInternalRuntime(t, BoundaryReader, Fault{Kind: KindDrop, phase: PhaseAfter})
+			var event AuditEvent
+			gate.auditor = AuditorFunc(func(value AuditEvent) { event = value })
+			reader := &injectedReader{
+				reader: bytes.NewBufferString("organic"), runtime: gate, boundary: BoundaryReader,
+				duplicate: []byte("stale"), duplicateDecision: Decision{faults: []Fault{{Kind: KindDrop}}},
+			}
+			// Hold the real final-admission owner until Read has passed its
+			// preliminary gates and owns the buffered-replay lock.
+			gate.injector.mu.Lock()
+			done := make(chan struct{})
+			buffer := make([]byte, 16)
+			var n int
+			var err error
+			go func() { n, err = reader.Read(buffer); close(done) }()
+			deadline := time.Now().Add(5 * time.Second)
+			for reader.duplicateMu.TryLock() {
+				reader.duplicateMu.Unlock()
+				if time.Now().After(deadline) {
+					gate.injector.mu.Unlock()
+					<-done
+					t.Fatal("Read never reached final replay admission")
+				}
+				runtime.Gosched()
+			}
+			if outcome == AuditDisabled {
+				gate.disabled.Store(true)
+			} else if got := gate.commitAdmission(); got != AuditEvaluated {
+				gate.injector.mu.Unlock()
+				<-done
+				t.Fatalf("competing final reservation = %s", got)
+			}
+			gate.injector.mu.Unlock()
+			<-done
+			if err != nil || string(buffer[:n]) != "organic" {
+				t.Fatalf("rejected replay = %q, %v", buffer[:n], err)
+			}
+			if len(reader.duplicate) != 0 || reader.duplicateDecision.Injected() {
+				t.Fatal("rejected replay retained bytes or fault attribution")
+			}
+			if event.Outcome != outcome || event.Injected || event.Sequence != 0 {
+				t.Fatalf("rejected replay audit = %+v", event)
+			}
+			want := uint64(0)
+			if outcome == AuditBudgetExhausted {
+				want = 1
+			}
+			if gate.Snapshot().Evaluations != want {
+				t.Fatal("rejected replay consumed an evaluation")
+			}
+		})
+	}
+}

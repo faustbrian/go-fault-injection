@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Coordinate terminal emergency disable with final budget admission and fault
+  selection. Authorization or predicate work still pending when disable wins
+  cannot select a fault; already-selected work may finish. Caller callbacks
+  remain outside the coordination lock.
+
+- Recheck runtime safety gates and consume an evaluation for every buffered
+  duplicate read, including HTTP bodies, files, and connections. Rejected
+  replays discard queued fault bytes; admitted replays retain their original
+  decision attribution in the audit event.
+
 - Require `Runtime` for `Run` and every built-in adapter so fault application
   cannot bypass authorization, boundary allowlisting, expiry, evaluation
   budget, auditing, or terminal emergency disable. This is a breaking public

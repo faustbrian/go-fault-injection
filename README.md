@@ -23,8 +23,8 @@ Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-li
 and its [resilience family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare focused policies and composition boundaries.
 
-The latest published module is the stable v1 public library. This branch is
-planned v2 source and is not published yet. Both require Go 1.27.0 or newer.
+The published v1.0.0 artifact declares Go 1.26.6. Current source is planned v2,
+requires Go 1.27.0 or newer, and is not published yet.
 
 ## Install
 
@@ -39,6 +39,8 @@ go get github.com/faustbrian/go-fault-injection/v2@v2
 ```
 
 ## Quick start
+
+The example below describes the pending v2 source, not the published v1 API.
 
 ```go
 injector, err := faultinject.New(faultinject.Config{Rules: []faultinject.Rule{{
@@ -108,6 +110,20 @@ satisfy the concurrency contract documented by their interface.
   cannot veto or rewrite a fault.
 
 See [API](docs/api.md) and [deterministic recipes](docs/operations.md).
+
+## Release sequence
+
+The non-releasable resilience and comparison modules temporarily consume
+published v1.0.0 so ordinary module-local CI can resolve their dependencies
+before root v2 publication. They do not currently prove the pending v2 API.
+Root v2 retains its own runtime security regressions and Go 1.27 minimum.
+
+Publish root v2 from `main` using its root major-version tag, then migrate both
+internal modules to the published `/v2` artifact. The rollout is unfinished
+until both published-v2 consumers and ordinary main CI pass. No workspace
+substitution, permanent replacement, or reduced CI selection supplies that
+release evidence. Support changes at publication as described in
+[SECURITY.md](SECURITY.md).
 
 ## Faults and adapters
 

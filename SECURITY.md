@@ -2,14 +2,20 @@
 
 ## Supported versions
 
-The latest stable v1 release receives security fixes. Older releases and the
-`main` branch are unsupported; upgrade before reporting unless the issue is a
-regression under active development.
+The latest published stable major series receives security fixes. Publication
+of a new stable major supersedes the previous major; breaking security fixes
+are not backported. Older releases and the `main` branch are unsupported;
+upgrade before reporting unless the issue is a regression under development.
+
+The published series is currently v1. The Runtime-only application APIs are
+pending v2 source, not a fix in the published v1 artifact. When v2.0.0 is
+published, v1 becomes unsupported: migrate imports to `/v2` and pass an explicit
+Runtime to every application API and built-in adapter.
 
 | Version | Supported |
 | --- | --- |
-| Latest stable v1 release | Yes |
-| Older releases | No |
+| Latest release in the latest published stable major | Yes |
+| Older releases and superseded major series | No |
 | `main` | No |
 
 ## Reporting a vulnerability
@@ -22,6 +28,9 @@ tenant identifiers, or production experiment tokens in a public report,
 fixture, event, log, or initial contact request.
 
 ## Activation boundary
+
+This boundary describes the pending v2 source. Published v1 application APIs
+accept an Injector directly and do not enforce Runtime admission themselves.
 
 The zero runtime is disabled. The package does not read environment variables,
 configuration files, flags, network endpoints, or global registries. Tests

@@ -130,37 +130,73 @@ func NewRuntime(config RuntimeConfig) (*Runtime, error) {
 // Decide applies the fail-closed runtime safety gates before evaluating the
 // underlying injector.
 func (runtime *Runtime) Decide(ctx context.Context, metadata Metadata) Decision {
-	if runtime == nil || runtime.injector == nil {
+	now, admitted := runtime.admit(ctx, metadata)
+	if !admitted {
 		return Decision{}
+	}
+	return runtime.selectDecision(metadata, now)
+}
+
+// admit evaluates caller-controlled prerequisites without holding a selection
+// lock. Final budget reservation and disable validation happen together with
+// selection, or with admission of an already-selected buffered replay.
+func (runtime *Runtime) admit(ctx context.Context, metadata Metadata) (time.Time, bool) {
+	if runtime == nil || runtime.injector == nil {
+		return time.Time{}, false
 	}
 	now, clockOK := runtimeNow(runtime.clock)
 	if !clockOK {
 		runtime.audit(metadata, AuditClockFailure, Decision{}, time.Time{})
-		return Decision{}
+		return time.Time{}, false
 	}
 	if runtime.disabled.Load() {
 		runtime.audit(metadata, AuditDisabled, Decision{}, now)
-		return Decision{}
+		return now, false
 	}
 	if _, allowed := runtime.allowlist[metadata.Boundary]; !allowed {
 		runtime.audit(metadata, AuditNotAllowlisted, Decision{}, now)
-		return Decision{}
+		return now, false
 	}
 	if !now.Before(runtime.expiresAt) {
 		runtime.audit(metadata, AuditExpired, Decision{}, now)
-		return Decision{}
+		return now, false
 	}
 	if !safeAuthorize(runtime.authorizer, ctx, metadata) {
 		runtime.audit(metadata, AuditDenied, Decision{}, now)
-		return Decision{}
+		return now, false
+	}
+	if runtime.disabled.Load() {
+		runtime.audit(metadata, AuditDisabled, Decision{}, now)
+		return now, false
+	}
+	if runtime.evaluations.Load() >= runtime.maximum {
+		runtime.audit(metadata, AuditBudgetExhausted, Decision{}, now)
+		return now, false
+	}
+	return now, true
+}
+
+func (runtime *Runtime) selectDecision(metadata Metadata, now time.Time) Decision {
+	outcome := AuditEvaluated
+	decision := runtime.injector.decide(metadata, func() bool {
+		outcome = runtime.commitAdmission()
+		return outcome == AuditEvaluated
+	})
+	runtime.audit(metadata, outcome, decision, now)
+	return decision
+}
+
+// commitAdmission requires the injector selection lock. Disable uses that same
+// lock, so no reservation or selection can cross a completed emergency stop.
+// This function invokes no application collaborator.
+func (runtime *Runtime) commitAdmission() AuditOutcome {
+	if runtime.disabled.Load() {
+		return AuditDisabled
 	}
 	if !runtime.reserve() {
-		runtime.audit(metadata, AuditBudgetExhausted, Decision{}, now)
-		return Decision{}
+		return AuditBudgetExhausted
 	}
-	decision := runtime.injector.Decide(metadata)
-	runtime.audit(metadata, AuditEvaluated, decision, now)
-	return decision
+	return AuditEvaluated
 }
 
 func (runtime *Runtime) active() bool {
@@ -218,7 +254,15 @@ func safeMetadata(metadata Metadata) Metadata {
 }
 
 // Disable permanently engages the emergency stop for this runtime gate.
-func (runtime *Runtime) Disable() { runtime.disabled.Store(true) }
+func (runtime *Runtime) Disable() {
+	if runtime.injector == nil {
+		runtime.disabled.Store(true)
+		return
+	}
+	runtime.injector.mu.Lock()
+	runtime.disabled.Store(true)
+	runtime.injector.mu.Unlock()
+}
 
 // RuntimeSnapshot is bounded safety-gate state.
 type RuntimeSnapshot struct {

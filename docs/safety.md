@@ -25,8 +25,18 @@ outcomes. Disable cannot be reversed. The package never reads an environment
 variable and provides no remote endpoint, wildcard target, discovery, gossip,
 or global registration mechanism.
 
-The evaluation budget is a conservative cap on authorized engine evaluations;
-a scheduled no-match still consumes one budget unit. Applications needing a
+Disable coordinates with final admission and selection, without waiting for
+caller callbacks. An authorizer or predicate still running when Disable returns
+cannot subsequently select a fault. A fault selected before Disable may finish,
+including when its observer or auditor calls Disable. Buffered replay receives
+its own fresh admission before queued bytes are exposed.
+
+The evaluation budget is a conservative cap on authorized application
+evaluations; a scheduled no-match or buffered duplicate replay still consumes
+one budget unit. Each replay rechecks the runtime gates and records its current
+attempt with the original decision's sequence and generation. Rejection discards
+queued fault bytes and delegates to the underlying reader without replay.
+Applications needing a
 rate cap must enforce it before authorization in addition to this finite total
 budget.
 

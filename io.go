@@ -46,27 +46,53 @@ func WrapReader(reader io.Reader, runtime *Runtime, operation uint32) io.Reader 
 }
 
 type injectedReader struct {
-	reader      io.Reader
-	runtime     *Runtime
-	operation   uint32
-	boundary    Boundary
-	attempt     atomic.Uint64
-	duplicateMu sync.Mutex
-	duplicate   []byte
+	reader            io.Reader
+	runtime           *Runtime
+	operation         uint32
+	boundary          Boundary
+	attempt           atomic.Uint64
+	duplicateMu       sync.Mutex
+	duplicate         []byte
+	duplicateDecision Decision
 }
 
 func (reader *injectedReader) Read(buffer []byte) (int, error) {
 	attempt := reader.attempt.Add(1)
+	metadata := Metadata{Boundary: reader.boundary, Operation: reader.operation, Attempt: attempt}
+	now, admitted := reader.runtime.admit(context.Background(), metadata)
+	if !admitted {
+		reader.duplicateMu.Lock()
+		reader.duplicate = nil
+		reader.duplicateDecision = Decision{}
+		reader.duplicateMu.Unlock()
+		return reader.reader.Read(buffer)
+	}
 	reader.duplicateMu.Lock()
 	if len(reader.duplicate) != 0 {
+		reader.runtime.injector.mu.Lock()
+		outcome := reader.runtime.commitAdmission()
+		reader.runtime.injector.mu.Unlock()
+		if outcome != AuditEvaluated {
+			reader.duplicate = nil
+			reader.duplicateDecision = Decision{}
+			reader.duplicateMu.Unlock()
+			reader.runtime.audit(metadata, outcome, Decision{}, now)
+			return reader.reader.Read(buffer)
+		}
 		n := copy(buffer, reader.duplicate)
 		reader.duplicate = reader.duplicate[n:]
+		decision := reader.duplicateDecision
+		if len(reader.duplicate) == 0 {
+			reader.duplicate = nil
+			reader.duplicateDecision = Decision{}
+		}
 		reader.duplicateMu.Unlock()
+		reader.runtime.audit(metadata, AuditEvaluated, decision, now)
 		return n, nil
 	}
 	reader.duplicateMu.Unlock()
 
-	decision := reader.runtime.Decide(context.Background(), Metadata{Boundary: reader.boundary, Operation: reader.operation, Attempt: attempt})
+	decision := reader.runtime.selectDecision(metadata, now)
 	if err := ioPhaseError(decision.faults, PhaseBefore, reader.runtime.sleeper()); err != nil {
 		return 0, err
 	}
@@ -75,7 +101,7 @@ func (reader *injectedReader) Read(buffer []byte) (int, error) {
 		return 0, err
 	}
 	n, organicError := reader.reader.Read(readBuffer)
-	n, injectedError := reader.transform(readBuffer[:n], decision.faults)
+	n, injectedError := reader.transform(readBuffer[:n], decision)
 	if injectedError != nil {
 		return n, injectedError
 	}
@@ -85,9 +111,9 @@ func (reader *injectedReader) Read(buffer []byte) (int, error) {
 	return n, organicError
 }
 
-func (reader *injectedReader) transform(data []byte, faults []Fault) (int, error) {
+func (reader *injectedReader) transform(data []byte, decision Decision) (int, error) {
 	n := len(data)
-	for _, fault := range faults {
+	for _, fault := range decision.faults {
 		switch fault.Kind {
 		case KindCorrupt:
 			if fault.phase == PhaseAfter && n != 0 {
@@ -105,6 +131,7 @@ func (reader *injectedReader) transform(data []byte, faults []Fault) (int, error
 			if fault.phase == PhaseAfter && n != 0 {
 				reader.duplicateMu.Lock()
 				reader.duplicate = append(reader.duplicate[:0], data[:min(n, fault.limit)]...)
+				reader.duplicateDecision = decision
 				reader.duplicateMu.Unlock()
 			}
 		case KindInterrupt:
