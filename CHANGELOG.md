@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-02
+
+### Changed
+
+- Raise the module graph's indirect Testify minimum from v1.8.0 to
+  v1.11.1. Consumers using Testify may select the newer version through
+  Go module version selection; the fault-injection API is unchanged.
+
 ## [2.0.0] - 2026-09-27
 
 ### Security
