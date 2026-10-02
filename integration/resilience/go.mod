@@ -8,4 +8,7 @@ require (
 	github.com/faustbrian/go-retry v1.1.0
 )
 
-require github.com/faustbrian/go-resilience v1.0.0 // indirect
+require (
+	github.com/failsafe-go/failsafe-go v0.9.7 // indirect
+	github.com/faustbrian/go-resilience v1.0.0 // indirect
+)
