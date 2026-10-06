@@ -9,7 +9,7 @@ import (
 
 	breaker "github.com/faustbrian/go-circuit-breaker"
 	faultinject "github.com/faustbrian/go-fault-injection/v2"
-	"github.com/faustbrian/go-retry"
+	"github.com/faustbrian/go-retry/v2"
 )
 
 var errCampaign = errors.New("injected campaign failure")
