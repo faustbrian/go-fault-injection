@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Adopt published Retry v2.1 and Resilience v2.0 in the non-releasable resilience
+  integration harness, preserving existing composition behavior and asserting
+  attached-scope retry lineage, bounded admission, refusal, and permit completion.
+
 ## [2.0.1] - 2026-10-02
 
 ### Changed

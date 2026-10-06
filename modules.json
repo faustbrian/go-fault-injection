@@ -188,7 +188,7 @@
       "module_path": "github.com/faustbrian/go-fault-injection/integration/resilience",
       "go_version": "1.27.0",
       "packages": [],
-      "purpose": "This non-releasable module composes published fault-injection v2.0.0 through explicit Runtime admission with the public strict retry and circuit-breaker contracts. Its in-process retry operations report known outcomes. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module.",
+      "purpose": "This non-releasable module composes published fault-injection v2.0.0 through explicit Runtime admission with the public strict retry and circuit-breaker contracts. Its in-process retry operations report known outcomes. The resilience modules do not import fault-injection in production; the dependency direction exists only in this integration module. Published Retry v2.1 composes an attached Resilience v2 scope with bounded admission, original/retry lineage, refusal before further dispatch, and permit completion.",
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,
@@ -202,7 +202,8 @@
         "github.com/faustbrian/go-circuit-breaker",
         "github.com/faustbrian/go-fault-injection/v2",
         "github.com/faustbrian/go-resilience",
-        "github.com/faustbrian/go-retry"
+        "github.com/faustbrian/go-resilience/v2",
+        "github.com/faustbrian/go-retry/v2"
       ],
       "reverse_owned_dependencies": [],
       "external_runtime_dependencies": [],
