@@ -10,7 +10,7 @@ allowlisting, expiry, finite evaluation budget, and auditing. Its fault-injectio
 sample includes Runtime admission and contract assertions. Measurements must
 identify the selected version; v1 measurements do not describe v2 performance.
 
-Failsafe-Go v0.9.7 has policy composition but no failure-injection policy. Its
+Failsafe-Go v0.9.8 has policy composition but no failure-injection policy. Its
 case therefore measures a caller-supplied failing function through the
 Failsafe-Go executor. It is included because Failsafe-Go is an authoritative
 composition reference, but it is not presented as equivalent injection work.
