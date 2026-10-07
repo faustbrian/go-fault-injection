@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   integration harness, preserving existing composition behavior and asserting
   attached-scope retry lineage, bounded admission, refusal, and permit completion.
 
+## [2.0.2] - 2026-10-07
+
+### Changed
+
+- Refresh the distributed development-tooling pin to go-library-tools v1.8.5
+  and the internal interoperability-harness metadata. The fault-injection
+  runtime, public API, production dependencies, and Go 1.27.0 minimum remain
+  unchanged.
+
 ## [2.0.1] - 2026-10-02
 
 ### Changed
