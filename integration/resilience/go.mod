@@ -3,7 +3,7 @@ module github.com/faustbrian/go-fault-injection/integration/resilience
 go 1.27.0
 
 require (
-	github.com/faustbrian/go-circuit-breaker v1.0.0
+	github.com/faustbrian/go-circuit-breaker v1.0.1
 	github.com/faustbrian/go-fault-injection/v2 v2.0.0
 	github.com/faustbrian/go-resilience/v2 v2.0.0
 	github.com/faustbrian/go-retry/v2 v2.1.0
