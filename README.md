@@ -3,7 +3,7 @@
 [![CI](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml)
 [![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-fault-injection/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
-[![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Mutation](https://img.shields.io/badge/mutation-full%2Frelease-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-fault-injection/v2.svg)](https://pkg.go.dev/github.com/faustbrian/go-fault-injection/v2)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-fault-injection?sort=semver)](https://github.com/faustbrian/go-fault-injection/releases)
@@ -190,14 +190,19 @@ From the repository root:
 
 ```sh
 make inventory
-make check MODULES=.
-make ci-changed BASE=<revision>
+make check
+make ci
+make check-full
 ```
 
-The module includes exact statement coverage, deterministic golden schedules,
-race/stress coverage, fuzz targets, adapter contract tests, and benchmarks.
-Repository gates add mutation, API compatibility, documentation, security,
-supply-chain, and clean-consumer checks.
+Ordinary checks use the published tool pinned in `.golib.yaml`, deterministic
+golden schedules, adapter contracts, security checks and a targeted exact-budget/
+bounded-selection race. Base-free checks run fuzz seeds; changed-source CI
+selects active smoke. Full checks retain the original fuzz/benchmark campaigns,
+mutation, API, documentation and release boundaries. No services or test tags
+are declared, and nested comparison/resilience modules remain intentional.
+See [contributor verification](CONTRIBUTING.md#verification) for standalone
+tests, tool installation, private-cache sessions and explicit release rehearsal.
 
 ## References
 
