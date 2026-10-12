@@ -6,9 +6,18 @@ import (
 )
 
 // NewRoundTripper returns a concurrent-safe in-process HTTP adapter. The base
-// transport retains responsibility for HTTP semantics. Injected failures close
+// transport retains responsibility for HTTP semantics. Injected returned errors close
 // request or response bodies at the same ownership boundary as transport
-// failures; successful response bodies remain caller-owned.
+// failures; successful response bodies remain caller-owned. base must satisfy
+// http.RoundTripper's concurrent-use, request/body and response-ownership contracts;
+// its lifetime and optional transport methods are not acquired by this wrapper.
+// Nil base returns ErrInvalidConfig; typed-nil delegates remain caller-invalid.
+// A nil/zero Runtime returns base unchanged. With a configured Runtime, response
+// bodies are wrapped at BoundaryHTTPBody even when establishment selects no fault.
+// Request context governs establishment, but contextless body Read admission and
+// selected latency use Background. Returned responses may have Body replaced in
+// place; supply exclusively owned responses rather than sharing response objects.
+// Selected panics propagate without adding post-acquisition cleanup.
 func NewRoundTripper(
 	base http.RoundTripper,
 	runtime *Runtime,

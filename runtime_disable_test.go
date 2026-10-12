@@ -20,6 +20,9 @@ func TestRuntimeDisableRejectsUnselectedEvaluations(t *testing.T) {
 	} {
 		t.Run(test.surface+"/"+test.pause, func(t *testing.T) {
 			t.Parallel()
+			// entered identifies a pre-selection callback window. The test owns
+			// release closure and cleanup; Disable must not wait for that callback,
+			// and resumed work must reach organic delegation rather than inject.
 			entered, release := make(chan struct{}), make(chan struct{})
 			var releaseOnce sync.Once
 			unblock := func() { releaseOnce.Do(func() { close(release) }) }

@@ -8,7 +8,12 @@ import (
 )
 
 // WrapListener injects bounded accept faults while delegating address and
-// close ownership to base. Connections rejected after acceptance are closed.
+// close ownership to base. Selected returned after-accept errors close the
+// acquired connection; organic results pass through and panics add no cleanup.
+// Nil base returns ErrInvalidConfig; typed-nil use remains caller-invalid.
+// Nil/zero Runtime returns base unchanged. Accept has no context, so admission
+// and injected delays use Background; base owns blocking/unblocking and safe
+// concurrent lifecycle. Accepted connections are not automatically WrapConn-ed.
 func WrapListener(base net.Listener, runtime *Runtime, operation uint32) (net.Listener, error) {
 	if base == nil {
 		return nil, invalid("Listener", "must be non-nil")
@@ -48,7 +53,12 @@ func (listener *injectedListener) Accept() (net.Conn, error) {
 type DialContextFunc func(context.Context, string, string) (net.Conn, error)
 
 // WrapDialer injects bounded establishment faults. A connection rejected by a
-// during or after fault is closed before the injected error is returned.
+// during or after returned fault error is closed before that error is returned.
+// Selected panics propagate without added post-acquisition cleanup.
+// Nil/zero Runtime returns base unchanged; base must be non-nil when invoked.
+// Caller context reaches authorization and the delegate (or an ended child for
+// selected during faults). The wrapper owns no timeout worker and does not wrap
+// successful connections or take their close/deadline lifetime.
 func WrapDialer(base DialContextFunc, runtime *Runtime, operation uint32) DialContextFunc {
 	if !runtime.active() {
 		return base
@@ -77,7 +87,12 @@ func WrapDialer(base DialContextFunc, runtime *Runtime, operation uint32) DialCo
 }
 
 // WrapConn preserves the net.Conn deadline, address, close, and concurrent
-// read/write surface while applying independent operation identifiers.
+// read/write surface while applying independent operation identifiers. The
+// connection must satisfy net.Conn and provide its own safe concurrent lifecycle;
+// nil input is not validated. Nil/zero Runtime returns it unchanged. Reset faults
+// close it; half-close uses direction-specific support or falls back to full
+// Close. Read/write admission and delays use Background, so base deadlines do
+// not bound callbacks or injected Sleep. Selected close errors are ignored.
 func WrapConn(connection net.Conn, runtime *Runtime, readOperation, writeOperation uint32) net.Conn {
 	if !runtime.active() {
 		return connection

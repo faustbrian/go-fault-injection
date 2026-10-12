@@ -6,7 +6,13 @@ import "context"
 // operation. An injected error returns the zero T value. During cancellation
 // and deadline faults call operation with an already-ended child context so
 // cooperative cleanup remains observable, then return the injected context
-// error even if operation ignores it.
+// error even if operation ignores it. During-phase latency/error failure likewise
+// still invokes operation, then overrides its returned value/error. Before-phase
+// failure skips operation; after-phase failure can discard an acquired result.
+// Run does not close generic results or roll back effects: operation owns cleanup.
+// Metadata.Boundary is used exactly as supplied, not overwritten by Run. Supply
+// non-nil ctx/operation; selected and delegate panics propagate. Execution is
+// synchronous with no timeout worker; caller context/cooperation bounds blocking.
 func Run[T any](
 	ctx context.Context,
 	runtime *Runtime,
@@ -88,6 +94,8 @@ func prepareDuring(
 			cancel()
 			injected = context.Canceled
 		case KindDeadline:
+			// Model an already-ended operation window without owning a timer. The
+			// delegate sees Canceled; the adapter reports DeadlineExceeded afterward.
 			var cancel context.CancelFunc
 			operationContext, cancel = context.WithCancel(operationContext)
 			cancel()

@@ -7,8 +7,13 @@ import (
 )
 
 // Authorizer approves one runtime evaluation at a bounded metadata boundary.
-// Implementations must be concurrency-safe. Panics fail closed.
+// Implementations are borrowed, must be concurrency-safe and return promptly
+// without blocking I/O. Panics fail closed only when invoked through Runtime;
+// directly calling AuthorizerFunc uses ordinary function panic semantics.
 type Authorizer interface {
+	// Authorize returns whether this bounded metadata may be evaluated.
+	// Honor caller context and return promptly; the Runtime adds no timeout.
+	// Contextless adapters pass Background. Runtime invocation contains panics.
 	Authorize(context.Context, Metadata) bool
 }
 
@@ -24,28 +29,49 @@ func (function AuthorizerFunc) Authorize(ctx context.Context, metadata Metadata)
 type AuditOutcome string
 
 const (
-	AuditEvaluated       AuditOutcome = "evaluated"
-	AuditDenied          AuditOutcome = "denied"
-	AuditNotAllowlisted  AuditOutcome = "not_allowlisted"
-	AuditExpired         AuditOutcome = "expired"
+	// AuditEvaluated records a budget-reserved evaluation, including no-match or replay.
+	AuditEvaluated AuditOutcome = "evaluated"
+	// AuditDenied records authorization refusal or an authorizer panic.
+	AuditDenied AuditOutcome = "denied"
+	// AuditNotAllowlisted records a boundary absent from the exact allowlist.
+	AuditNotAllowlisted AuditOutcome = "not_allowlisted"
+	// AuditExpired records sampled time at or after the configured expiry.
+	AuditExpired AuditOutcome = "expired"
+	// AuditBudgetExhausted records refusal by the finite evaluation allowance.
 	AuditBudgetExhausted AuditOutcome = "budget_exhausted"
-	AuditDisabled        AuditOutcome = "disabled"
-	AuditClockFailure    AuditOutcome = "clock_failure"
+	// AuditDisabled records refusal by this Runtime's terminal emergency stop.
+	AuditDisabled AuditOutcome = "disabled"
+	// AuditClockFailure records a panicking Runtime clock, with zero event time.
+	AuditClockFailure AuditOutcome = "clock_failure"
 )
 
 // AuditEvent contains only bounded typed metadata and result attribution.
 type AuditEvent struct {
-	Metadata   Metadata
-	Outcome    AuditOutcome
-	Injected   bool
-	Sequence   uint64
+	// Metadata is copied attribution; invalid Boundary spelling becomes invalid.
+	// Numeric Operation/Attempt remain caller-supplied and must be non-sensitive.
+	Metadata Metadata
+	// Outcome identifies admission/evaluation, not application success.
+	Outcome AuditOutcome
+	// Injected reports selected fault presence, not whether the adapter applied it.
+	Injected bool
+	// Sequence is selected Injector attribution, zero for unselected refusals;
+	// buffered replay retains the original decision sequence.
+	Sequence uint64
+	// Generation is selected Injector attribution; replay retains its original value.
 	Generation uint64
-	At         time.Time
+	// At is time sampled before preliminary admission, not an operation finish time.
+	At time.Time
 }
 
 // Auditor records every attempted runtime evaluation. It cannot change a
-// decision, and panics are contained.
+// decision, and Runtime invocation contains panics. Implementations must be
+// concurrency-safe, return promptly and bound their own retained state. Delivery
+// is synchronous outside selection locks, may interleave and is not retried;
+// nil/zero Runtime decisions have no configured auditor and emit no event.
 type Auditor interface {
+	// Audit receives one copied attempt event. It may call Disable without a
+	// selection lock held; blocking still delays the caller and panics do not
+	// undo selection. The package cannot guarantee external persistence.
 	Audit(AuditEvent)
 }
 
@@ -58,18 +84,33 @@ func (function AuditorFunc) Audit(event AuditEvent) { function(event) }
 // RuntimeConfig requires every production experiment safety boundary
 // explicitly. No environment variable or ambient global state is consulted.
 type RuntimeConfig struct {
-	Injector           *Injector
-	Authorizer         Authorizer
-	Allowlist          []Boundary
-	ExpiresAt          time.Time
+	// Injector must come from New and is borrowed, not copied or exclusively
+	// owned. Other Runtime gates can share its rule counters/generations.
+	Injector *Injector
+	// Authorizer is mandatory and borrowed; nil and typed nil are rejected.
+	Authorizer Authorizer
+	// Allowlist is copied into an exact set of 1–64 unique safe boundaries.
+	Allowlist []Boundary
+	// ExpiresAt must be nonzero and is compared to sampled Clock time per call.
+	// Construction accepts past expiry; such calls fail admission.
+	ExpiresAt time.Time
+	// MaximumEvaluations must be 1–1,000,000,000. No-match selection and each
+	// buffered replay consume one; denied preliminary gates consume none.
 	MaximumEvaluations uint64
-	Clock              Clock
-	Auditor            Auditor
+	// Clock is borrowed; nil uses system time, typed nil refuses construction.
+	// It controls sampled expiry/audit time independently of Injector event time.
+	Clock Clock
+	// Auditor is mandatory and borrowed; nil and typed nil are rejected. Its
+	// concurrency safety, bounded retention and delivery durability are caller-owned.
+	Auditor Auditor
 }
 
 // Runtime is the fail-closed application gate for explicitly wired controlled
 // experiments. A nil or zero Runtime disables built-in fault application.
-// Disable is terminal and concurrency-safe.
+// Disable is terminal and concurrency-safe. Decide, Disable and Snapshot may
+// run concurrently, but borrowed collaborators must also support that usage.
+// No goroutine, resource close or re-enable protocol is owned. Disable and
+// Snapshot require non-nil receivers; Decide alone accepts a nil Runtime.
 type Runtime struct {
 	injector    *Injector
 	authorizer  Authorizer
@@ -83,7 +124,10 @@ type Runtime struct {
 }
 
 // NewRuntime validates authorization, allowlist, expiry, budget, audit, and
-// emergency-disable prerequisites before use.
+// emergency-disable prerequisites before use. Invalid configuration returns nil
+// and InvalidConfigError wrapping ErrInvalidConfig; callbacks are not invoked.
+// Allowlist is copied, other collaborators are retained. Expiry is enforced on
+// sampled per-call time, not by a timer or a construction-time future check.
 func NewRuntime(config RuntimeConfig) (*Runtime, error) {
 	if config.Injector == nil || !config.Injector.enabled {
 		return nil, invalid("Runtime.Injector", "must be explicitly constructed")
@@ -128,7 +172,12 @@ func NewRuntime(config RuntimeConfig) (*Runtime, error) {
 }
 
 // Decide applies the fail-closed runtime safety gates before evaluating the
-// underlying injector.
+// underlying injector. Nil/zero Runtime returns an empty decision without audit.
+// Use a non-nil context; authorization owns cancellation semantics. Clock and
+// authorization run before selection; their sampled result is not re-evaluated
+// while callbacks block. Final budget/Disable checks share the Injector lock.
+// Refusal means no experiment fault: built-in adapters still delegate organic
+// work. Already-selected faults may finish even after a callback calls Disable.
 func (runtime *Runtime) Decide(ctx context.Context, metadata Metadata) Decision {
 	now, admitted := runtime.admit(ctx, metadata)
 	if !admitted {
@@ -253,7 +302,10 @@ func safeMetadata(metadata Metadata) Metadata {
 	return metadata
 }
 
-// Disable permanently engages the emergency stop for this runtime gate.
+// Disable permanently engages the emergency stop for this non-nil Runtime.
+// Repeated calls are safe, including on a zero Runtime. It serializes final
+// admission with selection but does not wait for callbacks, cancel delegated I/O
+// or undo selected faults. Injector.Reset cannot re-enable this gate.
 func (runtime *Runtime) Disable() {
 	if runtime.injector == nil {
 		runtime.disabled.Store(true)
@@ -266,13 +318,20 @@ func (runtime *Runtime) Disable() {
 
 // RuntimeSnapshot is bounded safety-gate state.
 type RuntimeSnapshot struct {
-	Disabled    bool
+	// Disabled reports the terminal flag; zero/uninitialized Runtime initially
+	// reports false even though it cannot inject.
+	Disabled bool
+	// Evaluations is the budget-reserved count, including no-match/replay.
 	Evaluations uint64
-	Remaining   uint64
-	ExpiresAt   time.Time
+	// Remaining is the non-negative budget remainder at the sampled count.
+	Remaining uint64
+	// ExpiresAt is the configured expiry, not a guarantee of active admission.
+	ExpiresAt time.Time
 }
 
-// Snapshot returns current runtime safety state.
+// Snapshot samples a non-nil Runtime's atomic count and disabled flag separately;
+// concurrent changes need not appear as one atomic state. The zero Runtime has
+// zero count/budget/expiry and may be explicitly disabled.
 func (runtime *Runtime) Snapshot() RuntimeSnapshot {
 	evaluations := runtime.evaluations.Load()
 	remaining := runtime.maximum - min(evaluations, runtime.maximum)

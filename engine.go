@@ -10,31 +10,67 @@ import (
 	"time"
 )
 
-// Config is copied and validated by New.
+// Config supplies rules and borrowed collaborators to New. Rules/fault slices
+// and Sequence patterns are copied; callback closures, interfaces and injected
+// error objects remain shared for the Injector/adapter lifetime. Callers must not
+// mutate source collections during construction. The zero Config creates an
+// enabled empty Injector with defaults, not the disabled zero Injector.
 type Config struct {
-	Rules                []Rule
-	Clock                Clock
-	Sleeper              Sleeper
-	Observer             Observer
-	MaxRules             int
+	// Rules is the finite immutable selection policy; nil/empty selects no faults.
+	Rules []Rule
+	// Clock supplies observation time; nil uses system time, typed nil refuses.
+	// The borrowed implementation must be concurrency-safe and return promptly.
+	Clock Clock
+	// Sleeper applies latency; nil uses context-aware system timers, typed nil
+	// refuses. Its implementation/lifetime stays caller-owned.
+	Sleeper Sleeper
+	// Observer receives selected per-fault events; nil suppresses delivery,
+	// typed nil refuses. Observation does not veto selection.
+	Observer Observer
+	// MaxRules caps rule count: zero defaults to 64; accepted values are 1–1024.
+	MaxRules int
+	// MaxFaultsPerDecision caps each rule list and total composed selection:
+	// zero defaults to 16; accepted values are 1–256.
 	MaxFaultsPerDecision int
-	MaxLatency           time.Duration
-	MaxBytes             int
+	// MaxLatency caps each configured latency fault, not total call duration or
+	// callback time. Zero defaults to 30 seconds; other values must be positive.
+	MaxLatency time.Duration
+	// MaxBytes caps configured byte-fault limits: zero defaults to 64 KiB;
+	// accepted values are 1–16 MiB. It does not cap organic caller buffers.
+	MaxBytes int
 }
 
 // Rule declares all activation, scope, bound, ordering, terminal, schedule,
 // predicate, observation, and fault composition behavior.
 type Rule struct {
-	ID          string
-	Scope       Boundary
-	Activation  Activation
-	Maximum     uint64
-	Terminal    Terminal
-	Order       int
+	// ID is a unique 1–64 byte ASCII letter/digit/dot/dash/underscore identity,
+	// used for attribution and lexical tie-breaking; do not embed sensitive data.
+	ID string
+	// Scope matches Metadata.Boundary exactly and uses the same safe alphabet
+	// and bound as ID; custom safe boundaries are allowed, not wildcard scopes.
+	Scope Boundary
+	// Activation must explicitly be Active or Inactive; zero is invalid.
+	Activation Activation
+	// Maximum caps this rule's activations per generation, not calls or faults;
+	// it must be 1–1,000,000,000, including for an Inactive rule.
+	Maximum uint64
+	// Terminal must be Continue or Stop; Stop ends composition after selection,
+	// not merely predicate eligibility or a schedule miss.
+	Terminal Terminal
+	// Order is ascending precedence, with ID breaking ties; negative is allowed.
+	Order int
+	// Observation must be Observe or Suppress. Observe needs Config.Observer
+	// for delivery but selection/accounting do not depend on a sink.
 	Observation Observation
-	Schedule    Schedule
-	Predicate   Predicate
-	Faults      []Fault
+	// Schedule must come from Every, Nth, Sequence or Probability; nil and
+	// custom dynamic values are rejected before selection.
+	Schedule Schedule
+	// Predicate is an optional concurrent-safe eligibility check before locking.
+	// Nil imposes no restriction; panics become a miss, not a propagated fault.
+	Predicate Predicate
+	// Faults is a non-empty ordered list copied and validated by New. Composition
+	// may retain only its prefix when earlier rules consume the decision cap.
+	Faults []Fault
 }
 
 type runtimeRule struct {
@@ -45,7 +81,9 @@ type runtimeRule struct {
 }
 
 // Injector owns bounded rule state. Its zero value is disabled and safe for
-// concurrent use.
+// concurrent use. New publishes immutable configuration; Decide, Snapshot and
+// Reset coordinate counters with one lock, never caller callbacks. Borrowed
+// collaborators must provide their own concurrency safety and prompt return.
 type Injector struct {
 	mu          sync.Mutex
 	enabled     bool
@@ -59,7 +97,10 @@ type Injector struct {
 	injections  uint64
 }
 
-// New copies and validates configuration before returning an active injector.
+// New validates configuration and copies rules/faults/schedules before returning
+// an enabled Injector at generation one. Invalid fields return nil and an
+// InvalidConfigError wrapping ErrInvalidConfig. Collaborators are not invoked
+// during validation and are not deep-copied; no worker or external I/O is started.
 func New(config Config) (*Injector, error) {
 	maxRules := config.MaxRules
 	if maxRules == 0 {
@@ -191,7 +232,12 @@ func validIdentity(value string) bool {
 }
 
 // Decide atomically orders one evaluation. Lock acquisition defines ordering;
-// identical configurations and acquisition order produce identical decisions.
+// identical configurations, predicate eligibility and acquisition order produce
+// identical decisions. It selects, but does not apply, faults or invoke Runtime
+// authorization. Nil/zero injectors return an empty zero-attribution Decision.
+// Every enabled admitted call counts as an evaluation, even without a match.
+// Predicates run before locking; observation runs synchronously after unlocking
+// and can interleave across calls without changing their selected attribution.
 func (i *Injector) Decide(metadata Metadata) Decision {
 	return i.decide(metadata, nil)
 }
@@ -232,6 +278,8 @@ func (i *Injector) decide(metadata Metadata, admit func() bool) Decision {
 		}
 		rule.injections = saturatingIncrement(rule.injections)
 		i.injections = saturatingIncrement(i.injections)
+		// Count one rule activation even if the remaining composition allowance
+		// selects only a prefix. Rule.Maximum limits activations, not fault count.
 		remaining := i.maxFaults - len(faults)
 		selected := rule.rule.Faults[:min(len(rule.rule.Faults), remaining)]
 		faults = append(faults, selected...)
@@ -302,7 +350,10 @@ func nilInterface(value any) bool {
 }
 
 // Reset begins a new activation generation and clears bounded counters. Any
-// previously returned Decision retains its original generation and faults.
+// previously returned Decision retains its original generation and faults. Nil
+// or zero injectors return zero. At uint64 generation exhaustion, Reset returns
+// that saturated generation without clearing counters; it never wraps identity.
+// Reset does not replenish a borrowing Runtime's budget or undo its Disable.
 func (i *Injector) Reset() uint64 {
 	if i == nil || !i.enabled {
 		return 0
@@ -324,20 +375,29 @@ func (i *Injector) Reset() uint64 {
 
 // RuleSnapshot is bounded per-rule accounting in precedence order.
 type RuleSnapshot struct {
-	ID         string
-	Calls      uint64
+	// ID is the validated rule identity in configured precedence order.
+	ID string
+	// Calls counts eligible visits that reached this rule before Stop/cap,
+	// including schedule misses and visits after its activation cap is exhausted.
+	Calls uint64
+	// Injections counts selected rule activations, not individual faults.
 	Injections uint64
 }
 
 // Snapshot is a point-in-time copy of bounded Injector state.
 type Snapshot struct {
-	Generation  uint64
+	// Generation is the activation identity, starting at one after New.
+	Generation uint64
+	// Evaluations counts ordered enabled evaluations, including no-match calls.
 	Evaluations uint64
-	Injections  uint64
-	Rules       []RuleSnapshot
+	// Injections sums rule activations; one decision may activate several rules.
+	Injections uint64
+	// Rules is a caller-owned per-rule copy, including inactive/exhausted rules.
+	Rules []RuleSnapshot
 }
 
-// Snapshot returns current state without exposing mutable configuration.
+// Snapshot returns a coherent locked copy without exposing mutable configuration.
+// Nil/zero injectors return a zero Snapshot; returned Rules may be freely mutated.
 func (i *Injector) Snapshot() Snapshot {
 	if i == nil || !i.enabled {
 		return Snapshot{}
@@ -357,7 +417,10 @@ func (i *Injector) Snapshot() Snapshot {
 	}
 }
 
-// Decision is an immutable selection attributed to one generation.
+// Decision is an immutable selection attributed to one generation, safe to
+// reuse. Its zero value means no injection and zero attribution. A no-match
+// evaluation from an enabled Injector still has sequence/generation attribution;
+// selected faults need not be applicable to every adapter.
 type Decision struct {
 	sequence   uint64
 	generation uint64
@@ -373,5 +436,6 @@ func (d Decision) Sequence() uint64 { return d.sequence }
 // Generation returns the activation generation captured during selection.
 func (d Decision) Generation() uint64 { return d.generation }
 
-// Faults returns a copy of selected faults in composition order.
+// Faults returns a caller-owned slice copy in composition order, or nil if empty.
+// Fault.Error objects remain retained references rather than deep copies.
 func (d Decision) Faults() []Fault { return append([]Fault(nil), d.faults...) }

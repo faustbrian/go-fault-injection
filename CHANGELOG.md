@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Clarify copied policy versus borrowed collaborators, reproducible selection
+  and observation order, runtime evaluation/disable limits, and adapter-specific
+  cancellation, partial-result and resource-ownership contracts in Go comments.
+
 ### Changed
 
 - Adopt published Retry v2.1 and Resilience v2.0 in the non-releasable resilience

@@ -5,7 +5,11 @@ import (
 	"time"
 )
 
-// WrapSleeper returns a clock-boundary adapter around a caller-owned sleeper.
+// WrapSleeper returns a BoundaryClock adapter around a caller-owned sleeper.
+// Nil base returns ErrInvalidConfig; typed-nil use is caller-invalid. Nil/zero
+// Runtime returns base unchanged. Caller context/delay reach the delegate unless
+// a selected fault changes the context or skips it. Borrowed sleepers must be
+// concurrency-safe and cooperative; no worker or forced cancellation is added.
 func WrapSleeper(base Sleeper, runtime *Runtime, operation uint32) (Sleeper, error) {
 	if base == nil {
 		return nil, invalid("Sleeper", "must be non-nil")
@@ -30,20 +34,34 @@ func (sleeper *injectedSleeper) Sleep(ctx context.Context, delay time.Duration) 
 }
 
 // Timer exposes the standard timer lifecycle without exposing a concrete
-// *time.Timer.
+// *time.Timer. The supplied factory defines channel draining, stop/reset races
+// and concurrent-use semantics; the adapter does not strengthen them.
 type Timer interface {
+	// C returns the factory-owned delivery channel; callers must not close it.
 	C() <-chan time.Time
+	// Stop stops the timer according to the underlying factory's active-state
+	// contract. The creator/caller owns stopping and any required channel draining.
 	Stop() bool
+	// Reset changes the delay according to the factory's active-state contract;
+	// its boolean/stop/drain requirements remain those of the supplied timer.
 	Reset(time.Duration) bool
 }
 
-// TimerFactory creates caller-owned timers through a bounded context.
+// TimerFactory creates caller-owned timers through caller context; adapters do
+// not manufacture a deadline or strengthen the supplied factory's cancellation.
 type TimerFactory interface {
+	// NewTimer receives caller context/delay and returns its timer/error.
+	// Successful ownership passes to the caller; adapters Stop an acquired timer
+	// when a selected failure replaces the result, not on ordinary returned errors.
 	NewTimer(context.Context, time.Duration) (Timer, error)
 }
 
 // WrapTimerFactory injects clock-boundary creation faults. A timer rejected
-// after construction is stopped before the injected error is returned.
+// after construction is stopped before the injected error is returned. Selected
+// panics propagate without adding post-acquisition cleanup. Nil base
+// returns ErrInvalidConfig; callers must avoid typed-nil collaborators/timers.
+// Nil/zero Runtime returns base unchanged. Successful timer lifecycle remains
+// caller-owned, and the wrapper imposes no worker or new delay-validity policy.
 func WrapTimerFactory(base TimerFactory, runtime *Runtime, operation uint32) (TimerFactory, error) {
 	if base == nil {
 		return nil, invalid("TimerFactory", "must be non-nil")

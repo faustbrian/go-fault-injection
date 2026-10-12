@@ -18,20 +18,27 @@ type probabilitySchedule struct {
 	denominator uint64
 }
 
-// Every selects every nth eligible call, beginning with call n.
+// Every describes every nth eligible call, beginning with call n. New rejects
+// n == 0; the constructor itself performs no validation or scheduling work.
 func Every(n uint64) Schedule { return everySchedule{every: n} }
 
-// Nth selects only the nth eligible call.
+// Nth describes only the nth eligible call. New rejects n == 0. Reset restarts
+// the eligible-call counter; this does not mean the nth global evaluation.
 func Nth(n uint64) Schedule { return nthSchedule{nth: n} }
 
 // Sequence selects calls from a copied finite pattern. When repeat is true the
-// pattern cycles; otherwise calls after the pattern do not match.
+// pattern cycles; otherwise calls after the pattern do not match. Copying occurs
+// eagerly in this constructor; New then requires a length of 1–1024 and copies
+// it again. Keep construction inputs bounded before calling Sequence.
 func Sequence(pattern []bool, repeat bool) Schedule {
 	return sequenceSchedule{pattern: append([]bool(nil), pattern...), repeat: repeat}
 }
 
 // Probability selects a deterministic seeded fraction of eligible calls.
-// Reproduction requires the seed and the same call ordering.
+// Reproduction requires the seed and the same eligible-call ordering. New
+// requires denominator > 0 and numerator <= denominator; zero/full fractions
+// never/always match. The counter-derived modular test is not cryptographic
+// randomness or a promise of an exact frequency in a finite campaign.
 func Probability(seed, numerator, denominator uint64) Schedule {
 	return probabilitySchedule{seed: seed, numerator: numerator, denominator: denominator}
 }
@@ -100,6 +107,9 @@ func scheduleSeed(schedule Schedule) uint64 {
 	return 0
 }
 
+// Fixed unsigned wraparound and constants make the counter-to-word mapping
+// stable without mutable PRNG state. Changing this mapping changes recorded
+// seeded campaigns (TestSeededProbabilityAndSequenceAreReproducible).
 func splitMix64(value uint64) uint64 {
 	value += 0x9e3779b97f4a7c15
 	value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9

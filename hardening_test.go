@@ -128,6 +128,9 @@ func TestConcurrentAdapterCallsAndObserverDeliveryRemainAttributable(t *testing.
 	}
 }
 
+// FuzzConfigurationNeverPanics varies scalar rule limits/enum/fraction inputs.
+// New must refuse invalid configuration or produce a bounded decision, never
+// apply latency or allocate attacker-sized fault lists.
 func FuzzConfigurationNeverPanics(f *testing.F) {
 	f.Add(uint8(1), uint64(1), uint64(1), uint64(2), int64(1), uint8(1))
 	f.Add(uint8(255), uint64(0), uint64(0), uint64(0), int64(-1), uint8(0))
@@ -152,6 +155,8 @@ func FuzzConfigurationNeverPanics(f *testing.F) {
 	})
 }
 
+// FuzzByteAdaptersPreserveCallerBounds caps input to 4096 bytes and fault limits
+// to 32, checking returned read counts and organic EOF—not stream/protocol fidelity.
 func FuzzByteAdaptersPreserveCallerBounds(f *testing.F) {
 	f.Add([]byte("payload"), uint8(3), uint8(0x20))
 	f.Add([]byte{}, uint8(1), uint8(1))
@@ -178,6 +183,9 @@ func FuzzByteAdaptersPreserveCallerBounds(f *testing.F) {
 	})
 }
 
+// FuzzRuleSchedulesPredicatesAndCompositionRemainBounded constructs finite
+// schedules/lists and checks composed fault counts over 64 eligible decisions.
+// It exercises selection only; predicate and observer timing are not fuzzed.
 func FuzzRuleSchedulesPredicatesAndCompositionRemainBounded(f *testing.F) {
 	f.Add(uint8(0), uint64(7), uint64(1), uint32(2), uint64(3), uint8(3), true)
 	f.Add(uint8(3), uint64(0), uint64(0), uint32(0), uint64(0), uint8(16), false)
@@ -221,6 +229,8 @@ func FuzzRuleSchedulesPredicatesAndCompositionRemainBounded(f *testing.F) {
 	})
 }
 
+// FuzzWriterAdaptersPreserveCallerBounds caps payload/limits, checking caller
+// input preservation, write counts and bounded duplicate output across seven kinds.
 func FuzzWriterAdaptersPreserveCallerBounds(f *testing.F) {
 	f.Add([]byte("payload"), uint8(2), uint8(0), uint8(1))
 	f.Add([]byte{}, uint8(0), uint8(6), uint8(0xff))
@@ -262,6 +272,8 @@ func durationFromFuzz(value int64) time.Duration {
 	return time.Duration(value)
 }
 
+// BenchmarkDisabledDecide measures the disabled zero Injector path without
+// Runtime admission; metadata/receiver setup is outside b.Loop.
 func BenchmarkDisabledDecide(b *testing.B) {
 	var injector faultinject.Injector
 	metadata := faultinject.Metadata{Boundary: faultinject.BoundaryFunction}
@@ -271,6 +283,8 @@ func BenchmarkDisabledDecide(b *testing.B) {
 	}
 }
 
+// BenchmarkNoMatchDecide measures an enabled empty Injector's evaluation
+// accounting, not a populated scope/predicate miss or Runtime admission.
 func BenchmarkNoMatchDecide(b *testing.B) {
 	injector, _ := faultinject.New(faultinject.Config{})
 	metadata := faultinject.Metadata{Boundary: faultinject.BoundaryFunction}
@@ -280,6 +294,8 @@ func BenchmarkNoMatchDecide(b *testing.B) {
 	}
 }
 
+// BenchmarkDeterministicMatch measures one Every(1) rule without observation
+// or Runtime admission; rule construction/validation are outside measurement.
 func BenchmarkDeterministicMatch(b *testing.B) {
 	rule := validRule("benchmark")
 	rule.Maximum = 1_000_000_000
@@ -292,6 +308,8 @@ func BenchmarkDeterministicMatch(b *testing.B) {
 	}
 }
 
+// BenchmarkSeededProbability measures one counter-derived 1/10 schedule
+// without Runtime admission; rule construction is excluded from b.Loop.
 func BenchmarkSeededProbability(b *testing.B) {
 	rule := validRule("probability")
 	rule.Maximum = 1_000_000_000
@@ -305,6 +323,8 @@ func BenchmarkSeededProbability(b *testing.B) {
 	}
 }
 
+// BenchmarkObservedMatch adds synchronous no-op observer delivery and event
+// time to one match; configuration is excluded, external sink cost is not measured.
 func BenchmarkObservedMatch(b *testing.B) {
 	rule := validRule("observed")
 	rule.Maximum = 1_000_000_000
@@ -321,6 +341,8 @@ func BenchmarkObservedMatch(b *testing.B) {
 	}
 }
 
+// BenchmarkCorruptReader measures a 64-byte generated read and corruption
+// including Runtime authorization/audit; buffer and wrapper setup are excluded.
 func BenchmarkCorruptReader(b *testing.B) {
 	rule := validRule("corrupt")
 	rule.Scope = faultinject.BoundaryReader
@@ -336,6 +358,9 @@ func BenchmarkCorruptReader(b *testing.B) {
 	}
 }
 
+// BenchmarkInjectedLatency compares a no-op borrowed Sleeper and a real
+// one-nanosecond system timer around Run, both with Runtime admission/audit.
+// Setup is excluded; equal configured delay does not imply equal elapsed latency.
 func BenchmarkInjectedLatency(b *testing.B) {
 	b.Run("injected-sleeper", func(b *testing.B) {
 		rule := validRule("latency")
@@ -365,6 +390,8 @@ func BenchmarkInjectedLatency(b *testing.B) {
 	})
 }
 
+// BenchmarkDirectErrorDouble measures a direct failing function without
+// selection or Runtime safety work; it is a baseline, not equivalent injection cost.
 func BenchmarkDirectErrorDouble(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
@@ -372,6 +399,8 @@ func BenchmarkDirectErrorDouble(b *testing.B) {
 	}
 }
 
+// BenchmarkConcurrentSelectionContention measures shared Injector lock
+// contention for one eligible rule through RunParallel, excluding Runtime admission.
 func BenchmarkConcurrentSelectionContention(b *testing.B) {
 	rule := validRule("parallel")
 	rule.Maximum = 1_000_000_000

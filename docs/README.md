@@ -26,6 +26,7 @@
 
 ## Reference and maintenance
 
+- [Source documentation audit](source-documentation.md)
 - [FAQ](faq.md)
 - [Compatibility policy](../COMPATIBILITY.md)
 - [Contribution guide](../CONTRIBUTING.md)

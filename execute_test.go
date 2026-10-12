@@ -157,6 +157,9 @@ func scopedRuntime(t *testing.T, boundary faultinject.Boundary, fault faultinjec
 	return runtimeWithInjector(t, scopedInjector(t, boundary, fault), boundary)
 }
 
+// runtimeWithInjector is permissive test-only wiring, not production policy:
+// default allowlisting is finite, authorization always allows, audit is discarded
+// and expiry/budget are generous so each subtest isolates its selected fault.
 func runtimeWithInjector(t testing.TB, injector *faultinject.Injector, boundaries ...faultinject.Boundary) *faultinject.Runtime {
 	t.Helper()
 	if len(boundaries) == 0 {
@@ -201,6 +204,8 @@ func ruleWithFault(id string, fault faultinject.Fault) faultinject.Rule {
 	}
 }
 
+// recordingSleeper observes phase order without real delays in sequential tests;
+// its slice is intentionally not a concurrency-safe Sleeper implementation.
 type recordingSleeper struct{ delays []time.Duration }
 
 func (sleeper *recordingSleeper) Sleep(_ context.Context, delay time.Duration) error {

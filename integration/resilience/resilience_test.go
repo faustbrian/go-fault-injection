@@ -1,3 +1,6 @@
+// These finite in-process campaigns consume the published fault-injection v2.0.0
+// artifact with GOWORK=off; they do not make resilience libraries depend on
+// injection in production or qualify this checkout's local root revision.
 package resilience_test
 
 import (
@@ -90,6 +93,9 @@ type campaignClock struct{ now time.Time }
 
 func (clock campaignClock) Now() time.Time { return clock.now }
 
+// faultCampaign captures at most two synchronous evaluations with a fixed
+// attribution clock. Its recorded array is fixture state, not durable audit or
+// a general concurrent campaign runner; production dependencies remain unwired.
 type faultCampaign struct {
 	injector       *faultinject.Injector
 	runtime        *faultinject.Runtime

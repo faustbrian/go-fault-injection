@@ -6,8 +6,12 @@ import (
 )
 
 // Fault is an immutable-after-construction fault description copied into an
-// Injector. Adapters apply only kinds whose semantics they explicitly define.
+// Injector. Its zero value is invalid for New; constructors defer validation to
+// New. Adapters ignore kind/phase combinations they do not explicitly support.
+// Config and Decision copy Fault values, not the object behind an injected error.
 type Fault struct {
+	// Kind identifies the behavior; configure payloads through the constructors.
+	// Changing a retained caller Fault after New cannot change copied rules.
 	Kind       Kind
 	phase      Phase
 	err        error
@@ -17,29 +21,42 @@ type Fault struct {
 	mask       byte
 }
 
-// ErrorFault returns err at phase.
+// ErrorFault describes err at phase; it does not apply the fault immediately.
+// New rejects nil/typed-nil errors and retains the original error object. Keep
+// its payload non-sensitive and safe for intended concurrent application.
 func ErrorFault(phase Phase, err error) Fault {
 	return Fault{Kind: KindError, phase: phase, err: err}
 }
 
-// LatencyFault delays at phase by a bounded duration.
+// LatencyFault describes a delay at phase. New requires a positive duration
+// within Config.MaxLatency; the constructor itself does not sleep or validate.
 func LatencyFault(phase Phase, delay time.Duration) Fault {
 	return Fault{Kind: KindLatency, phase: phase, delay: delay}
 }
 
-// CancelFault makes an adapter expose context cancellation at phase.
+// CancelFault describes cancellation at phase without canceling the parent.
+// Context-aware during-phase adapters call their delegate with an already-
+// canceled child and then return context.Canceled.
 func CancelFault(phase Phase) Fault { return Fault{Kind: KindCancel, phase: phase} }
 
-// DeadlineFault makes an adapter expose deadline expiry at phase.
+// DeadlineFault describes synthetic deadline expiry at phase. Context-aware
+// during-phase adapters pass an already-canceled child (its Err is Canceled,
+// not DeadlineExceeded), then return context.DeadlineExceeded themselves. No
+// actual timer or new deadline is installed.
 func DeadlineFault(phase Phase) Fault { return Fault{Kind: KindDeadline, phase: phase} }
 
-// PanicFault panics with a bounded caller-supplied safe string at phase.
+// PanicFault describes a panic at phase, not an immediate constructor panic.
+// New requires value to be a 1–64 byte ASCII letter/digit/dot/dash/underscore
+// identity. Selected application panics are intentional and not recovered.
 func PanicFault(phase Phase, value string) Fault {
 	return Fault{Kind: KindPanic, phase: phase, panicValue: value}
 }
 
-// ByteFault configures a byte or stream fault. limit is required by truncate,
-// reorder, short-read, short-write, and interruption. Corruption uses mask.
+// ByteFault describes an adapter-specific byte/stream/network fault. New requires
+// positive limit within Config.MaxBytes for duplicate, truncate, reorder, corrupt,
+// short-read, short-write and interruption; corruption also requires nonzero mask.
+// Other supported byte/network kinds may use zero limit. Construction does not
+// validate support or phase; consult docs/adapters.md for the applied semantics.
 func ByteFault(kind Kind, phase Phase, limit int, mask byte) Fault {
 	return Fault{Kind: kind, phase: phase, limit: limit, mask: mask}
 }

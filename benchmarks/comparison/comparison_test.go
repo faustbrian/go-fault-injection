@@ -1,3 +1,5 @@
+// These published-v2 consumer benchmarks compare a caller-visible failure only,
+// not equal policy/selection work or local-root candidate performance.
 package comparison_test
 
 import (
@@ -14,6 +16,10 @@ import (
 
 var errComparison = errors.New("comparison failure")
 
+// BenchmarkEquivalentFailureOutcome excludes reusable setup except goresilience's
+// fresh-runner construction per sample. Fault injection includes Runtime safety
+// and per-call attribution assertions; Failsafe executes a caller-failing function
+// and the direct double has neither policy nor injection overhead.
 func BenchmarkEquivalentFailureOutcome(b *testing.B) {
 	b.Run("fault-injection", benchmarkFaultInjection)
 	b.Run("goresilience", benchmarkGoresilience)
@@ -46,6 +52,9 @@ func benchmarkFaultInjection(b *testing.B) {
 	benchmarkFailure(b, run)
 }
 
+// The pinned cumulative-error runner must be recreated after each 100-percent
+// refusal or its next call may delegate. This asymmetric setup cost is deliberate
+// and described in README.md, not silently presented as equivalent policy work.
 func benchmarkGoresilience(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -127,6 +136,7 @@ func newFaultInjectionFailure(t testing.TB) func() error {
 	}
 }
 
+// campaignClock freezes the finite benchmark campaign's expiry without sleeping.
 type campaignClock struct{ now time.Time }
 
 func (clock campaignClock) Now() time.Time { return clock.now }

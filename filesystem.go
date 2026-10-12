@@ -6,8 +6,13 @@ import (
 )
 
 // WrapFS returns an fs.FS adapter with separate open and read operation
-// identities. Open failures close any file already acquired; successful files
-// remain caller-owned.
+// identities. Selected returned after-open errors close an acquired file;
+// organic results and successful files remain caller-owned. Selected panics
+// propagate without added cleanup. Nil base returns ErrInvalidConfig; callers must also avoid
+// typed nil and honor fs.FS/fs.File ownership and counts. Nil/zero Runtime returns
+// base unchanged. Open/Read admission uses Background and adds no cancellation or
+// serialization to the base. Optional FS/File interfaces beyond the advertised
+// surface are not forwarded; file Stat/Close delegate to the acquired file.
 func WrapFS(base fs.FS, runtime *Runtime, openOperation, readOperation uint32) (fs.FS, error) {
 	if base == nil {
 		return nil, invalid("FS", "must be non-nil")

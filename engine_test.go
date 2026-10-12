@@ -308,6 +308,8 @@ func kinds(faults []faultinject.Fault) []faultinject.Kind {
 	return result
 }
 
+// fixedClock isolates attribution/expiry in fixtures; mutable tests change it
+// only between synchronous calls, while concurrent tests keep now unchanged.
 type fixedClock struct{ now time.Time }
 
 func (clock *fixedClock) Now() time.Time { return clock.now }

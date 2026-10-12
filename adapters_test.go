@@ -137,6 +137,8 @@ type trackingFS struct{ file *trackingFile }
 
 func (filesystem *trackingFS) Open(string) (fs.File, error) { return filesystem.file, nil }
 
+// trackingFile is a sequential ownership/count double, not an fs implementation
+// fidelity fixture; Stat and exhaustion intentionally use minimal behavior.
 type trackingFile struct {
 	data   []byte
 	offset int
@@ -175,6 +177,8 @@ func (function timerFactoryFunc) NewTimer(ctx context.Context, delay time.Durati
 	return function(ctx, delay)
 }
 
+// stubTimer records cleanup ownership without a timer goroutine or event source;
+// its channel is never delivered/closed and its booleans are sequential probes.
 type stubTimer struct {
 	channel chan time.Time
 	stopped bool

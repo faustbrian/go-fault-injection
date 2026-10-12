@@ -24,20 +24,35 @@ var (
 )
 
 // NetworkError classifies an injected network failure without changing the
-// underlying adapter's organic error values.
+// underlying adapter's organic error values. Obtain it from an adapter; Error
+// requires an initialized non-nil value, while Timeout and Temporary only read
+// the classification. It unwraps to the corresponding package sentinel.
 type NetworkError struct {
 	cause     error
 	temporary bool
 }
 
-func (e *NetworkError) Error() string   { return e.cause.Error() }
-func (e *NetworkError) Unwrap() error   { return e.cause }
-func (e *NetworkError) Timeout() bool   { return false }
+// Error returns the retained network sentinel message; uninitialized values panic.
+func (e *NetworkError) Error() string { return e.cause.Error() }
+
+// Unwrap exposes the retained sentinel for errors.Is; the zero value has no cause.
+func (e *NetworkError) Unwrap() error { return e.cause }
+
+// Timeout is false: injected temporary/permanent errors do not imply a deadline.
+func (e *NetworkError) Timeout() bool { return false }
+
+// Temporary reports the selected compatibility classification for net.Error.
 func (e *NetworkError) Temporary() bool { return e.temporary }
 
 // WrapReader wraps reader only when runtime is active. Byte faults are
 // bounded by their configured limit, and duplicated data is retained in a
-// bounded private buffer.
+// bounded private buffer. A nil/zero Runtime returns the original reader; an
+// expired/denied/disabled configured Runtime delegates without selecting faults.
+// reader must honor io.Reader counts and intended concurrent use; the wrapper
+// does not serialize delegated reads or add Close/optional-interface forwarding.
+// Admission/delays use context.Background because Read has no context. Replay
+// consumes fresh Runtime admission, discards queued bytes on refusal and retains
+// the original decision attribution; see docs/adapters.md for phases/partials.
 func WrapReader(reader io.Reader, runtime *Runtime, operation uint32) io.Reader {
 	if !runtime.active() {
 		return reader
@@ -69,6 +84,9 @@ func (reader *injectedReader) Read(buffer []byte) (int, error) {
 	}
 	reader.duplicateMu.Lock()
 	if len(reader.duplicate) != 0 {
+		// Lock order is duplicateMu then Injector.mu. No path holds the selection
+		// lock across a caller callback or delegated Read. Replays must commit
+		// fresh admission before exposing saved bytes, even after Reset/Disable.
 		reader.runtime.injector.mu.Lock()
 		outcome := reader.runtime.commitAdmission()
 		reader.runtime.injector.mu.Unlock()
@@ -143,9 +161,15 @@ func (reader *injectedReader) transform(data []byte, decision Decision) (int, er
 	return n, nil
 }
 
-// WrapWriter wraps writer only when runtime is active. Transforming faults
-// operate on at most their declared limit and report short writes for larger
-// caller buffers.
+// WrapWriter returns the original writer for a nil/zero Runtime; configured
+// runtimes admit each operation before fault selection. Short/truncate faults
+// bound delegation, while corruption/reordering copy the delegated input and
+// modify only a bounded prefix, preserving caller data and the suffix. MaxBytes
+// bounds fault limits, not the full caller buffer or its defensive copy.
+// writer must honor io.Writer counts and intended concurrent use. No delegated
+// write serialization, Close/optional-interface forwarding or cancellation is
+// added; admission/delays use Background. After failures preserve the first count;
+// duplication does not add replay bytes to that count. See docs/adapters.md.
 func WrapWriter(writer io.Writer, runtime *Runtime, operation uint32) io.Writer {
 	if !runtime.active() {
 		return writer
@@ -233,6 +257,9 @@ func transformWriteBuffer(buffer []byte, faults []Fault) ([]byte, bool) {
 		if fault.phase != PhaseDuring || (fault.Kind != KindCorrupt && fault.Kind != KindReorder) {
 			continue
 		}
+		// Copy the whole delegated buffer once so composed transforms preserve
+		// both caller ownership and the untouched suffix. Prefix-only copies
+		// would silently shorten writes (TestWriterComposesBoundedTransformsWithoutDiscardingSuffix).
 		if !copied {
 			buffer = append([]byte(nil), buffer...)
 			copied = true

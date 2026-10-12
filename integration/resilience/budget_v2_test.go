@@ -11,6 +11,9 @@ import (
 	"github.com/faustbrian/go-retry/v2"
 )
 
+// The retry allowance controls dispatch before Runtime admission: after one
+// additional attempt, no third authorization/audit/operation may occur and
+// completed permits must leave no active amplification capacity.
 func TestInjectorRetryVersion2BudgetAdmissionAndRefusal(t *testing.T) {
 	campaign := firstCallCampaign(t)
 	budget, err := resilience.NewBudget(resilience.BudgetConfig{

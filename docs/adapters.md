@@ -5,8 +5,10 @@
 `PhaseBefore` runs before delegation. `PhaseDuring` represents the owned
 operation window: latency is applied at entry, and cancellation/deadline faults
 pass an already-ended child context to context-aware delegates before the
-injected context error is returned. `PhaseAfter` runs after delegation and
-closes newly acquired resources when it replaces success with failure.
+injected context error is returned. `PhaseAfter` runs after delegation. Resource-acquiring adapters close or stop
+acquired results when a selected returned error replaces the result; generic
+`Run` does not close results. Selected panics propagate without additional
+post-acquisition cleanup.
 
 This is deterministic in-process behavior. It does not claim scheduler,
 packet, kernel, proxy, database, broker, or cluster fidelity.
@@ -42,8 +44,8 @@ if reset occurs before it is read.
 
 - short write and truncate delegate a bounded prefix and return
   `io.ErrShortWrite` when the caller supplied more data;
-- corruption and reordering copy and transform only a bounded prefix while
-  preserving the remaining caller bytes;
+- corruption and reordering copy the delegated buffer, transform only a bounded
+  prefix and preserve the remaining caller bytes;
 - drop reports the caller buffer accepted without delegating it;
 - duplicate delegates the bounded input twice;
 - interruption preserves the delegated partial count and returns
@@ -71,8 +73,8 @@ closed before the injected error is returned.
 
 ## Filesystem
 
-Open and read use distinct boundaries. An after-open fault closes the acquired
-file. Successful files remain caller-owned; `Stat` and `Close` delegate to the
+Open and read use distinct boundaries. A selected returned after-open error closes the acquired
+file; organic results pass through. Successful files remain caller-owned; `Stat` and `Close` delegate to the
 original `fs.File`. This adapter does not invent write, rename, permission, or
 transaction semantics.
 
