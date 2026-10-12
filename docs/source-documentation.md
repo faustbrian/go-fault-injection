@@ -53,3 +53,12 @@ Changed documentation receives local-link, secret and complete-diff inspection.
 The coordinator owns remote-main/exact CI and shared-enforcement adoption;
 local source proof does not certify those boundaries. No module release or
 consumer repinning is required by this documentation change.
+
+## Objective Enforcement
+
+The qualified public Tools v2.4.0 binary and immutable reusable CI source
+provide the strict tracked-source check through `make source-docs-check`,
+the existing local check/CI routes and Required aggregation. Release and
+selected security/assurance routes retain their existing controls. This
+structural status supplements the rendered semantic audit; it does not
+certify prose meaning, generator execution or runtime conformance.
