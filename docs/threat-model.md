@@ -1,5 +1,8 @@
 # Threat model
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Deterministic recipes and operations](operations.md)
+
 Model version: 1
 Last reviewed: 2026-09-13
 

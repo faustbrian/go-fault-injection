@@ -1,5 +1,8 @@
 # Kubernetes semantics
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 An injector is process-local. In Kubernetes that normally means one container
 in one pod. It has no knowledge of Deployments, ReplicaSets, Services, nodes,
 zones, disruption budgets, or other replicas.

@@ -1,5 +1,8 @@
 # Toxiproxy and infrastructure comparison
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 `fault-injection` operates at Go function and interface boundaries. It is fast,
 seeded, directly attributable to a rule, and suitable for deterministic unit,
 integration, race, fuzz, and resilience campaigns.

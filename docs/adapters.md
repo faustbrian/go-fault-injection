@@ -1,5 +1,8 @@
 # Adapter contracts
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 ## Phase model
 
 `PhaseBefore` runs before delegation. `PhaseDuring` represents the owned

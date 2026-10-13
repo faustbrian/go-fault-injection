@@ -1,5 +1,8 @@
 # Performance
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 The root benchmark suite measures disabled and no-match selection,
 deterministic and seeded matches, observer delivery, injected latency with both
 an injected sleeper and the system timer, bounded byte corruption, and a direct

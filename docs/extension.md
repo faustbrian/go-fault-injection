@@ -1,5 +1,8 @@
 # Extension guidance
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 Add an adapter only when its interface contract, ownership, cancellation,
 partial results, and cleanup can be stated exactly.
 

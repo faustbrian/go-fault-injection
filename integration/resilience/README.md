@@ -1,5 +1,8 @@
 # Resilience campaign integration
 
+[Documentation map](../../docs/index.md) · [Repository README](../../README.md)
+[Next: Documentation map](../../docs/index.md)
+
 This non-releasable module proves that `fault-injection` can drive deterministic
 campaigns through the public retry and circuit-breaker contracts. The resilience
 modules do not import fault-injection in production; the dependency direction

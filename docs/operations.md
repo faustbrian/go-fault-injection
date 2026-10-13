@@ -1,5 +1,8 @@
 # Deterministic recipes and operations
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 ## Exact call campaigns
 
 Use `Nth(n)` for one exact eligible call, `Every(n)` for a periodic schedule,

@@ -1,5 +1,8 @@
 # Fault-injection comparison benchmarks
 
+[Documentation map](../../docs/index.md) · [Repository README](../../README.md)
+[Next: Documentation map](../../docs/index.md)
+
 This non-releasable module isolates comparison dependencies from the core
 fault-injection module. All candidates return a caller-visible error. The
 fault-injection and goresilience cases prevent the wrapped operation from

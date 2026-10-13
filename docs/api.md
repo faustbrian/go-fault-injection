@@ -1,5 +1,8 @@
 # API reference
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Deterministic recipes and operations](operations.md)
+
 ## Engine
 
 - `New(Config) (*Injector, error)` copies and validates all rules.

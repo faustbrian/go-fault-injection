@@ -1,5 +1,8 @@
 # FAQ
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 ## Why not use a mock?
 
 Use a mock or small fake when one isolated return value is the contract. Use

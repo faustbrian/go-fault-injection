@@ -1,5 +1,8 @@
 # Safety and runtime controls
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Deterministic recipes and operations](operations.md)
+
 ## Test construction
 
 Construct an `Injector` and a `Runtime` inside a test and pass the runtime to

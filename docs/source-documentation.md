@@ -1,5 +1,8 @@
 # Source documentation audit
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API reference](api.md)
+
 ## Audited scope
 
 Baseline `b996ebf18469be88ed8cc19cea8055185b151595` has 32 tracked Go
