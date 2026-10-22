@@ -6,10 +6,10 @@ require (
 	github.com/faustbrian/go-circuit-breaker v1.0.1
 	github.com/faustbrian/go-fault-injection/v2 v2.0.0
 	github.com/faustbrian/go-resilience/v2 v2.0.0
-	github.com/faustbrian/go-retry/v2 v2.1.0
+	github.com/faustbrian/go-retry/v2 v2.2.0
 )
 
 require (
 	github.com/failsafe-go/failsafe-go v0.9.8 // indirect
-	github.com/faustbrian/go-resilience v1.0.0 // indirect
+	github.com/faustbrian/go-resilience v1.1.0 // indirect
 )
